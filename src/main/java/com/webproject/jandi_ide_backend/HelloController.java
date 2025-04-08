@@ -8,6 +8,6 @@ public class HelloController {
 
     @RequestMapping("")
     public String hello() {
-        return "Hello World v3";
+        return "세팅 1시간 컷 지렸다";
     }
 }
