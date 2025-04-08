@@ -24,5 +24,7 @@ jobs:
         run: |
           ssh -i ~/.ssh/deploy_key ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }} << 'EOF'
             cd /home/ubuntu/app
+            git fetch origin main
+            git reset --hard origin/main
             ./deploy.sh
           EOF
