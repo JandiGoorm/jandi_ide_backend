@@ -1,13 +1,13 @@
 package com.webproject.jandi_ide_backend;
 
-import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
 public class HelloController {
 
-    @RequestMapping("")
+    @GetMapping("")
     public String hello() {
-        return "세팅 1시간 컷 지렸다";
+        return "메인 브랜치 최종 업데이트 250411";
     }
 }
