@@ -29,6 +29,8 @@ jobs:
             export DB_URL="${{ secrets.DB_URL }}"
             export DB_USERNAME="${{ secrets.DB_USERNAME }}"
             export DB_PASSWORD="${{ secrets.DB_PASSWORD }}"
+            export GITHUB_CLIENT_ID="${{ secrets.GH_CLIENT_ID }}"
+            export GITHUB_CLIENT_SECRET="${{ secrets.GH_CLIENT_SECRET }}"
           
             git fetch origin main
             git reset --hard origin/main
