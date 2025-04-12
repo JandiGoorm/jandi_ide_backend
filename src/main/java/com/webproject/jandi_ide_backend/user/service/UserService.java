@@ -2,6 +2,7 @@ package com.webproject.jandi_ide_backend.user.service;
 
 import com.webproject.jandi_ide_backend.user.dto.UserInfoDTO;
 import com.webproject.jandi_ide_backend.user.dto.UserLoginDTO;
+import com.webproject.jandi_ide_backend.user.dto.UserResponseDTO;
 import com.webproject.jandi_ide_backend.user.entity.User;
 import com.webproject.jandi_ide_backend.user.repository.UserRepository;
 import org.springframework.beans.factory.annotation.Value;
@@ -31,6 +32,11 @@ public class UserService {
         this.userRepository = userRepository;
     }
 
+    /**
+     * 깃헙 로그인
+     * @param code: 깃헙에서 받은 인가 코드
+     * @return: access_token
+     */
     public UserLoginDTO getToken(String code) {
         String tokenUrl = "https://github.com/login/oauth/access_token";
 
@@ -83,6 +89,12 @@ public class UserService {
         }
     }
 
+    /**
+     * accessToken으로 깃헙 사용자 정보 가져오기
+     * DB에 해당 유저 정보가 없다면, DB에 저장합니다.
+     * @param accessToken: 깃헙에서 받은 access_token
+     * @return: UserInfoDTO
+     */
     public UserInfoDTO getUserInfo(String accessToken) {
         String userInfoUrl = "https://api.github.com/user";
         RestTemplate restTemplate = new RestTemplate();
@@ -108,5 +120,58 @@ public class UserService {
         String nickname = (String) userInfoMap.get("login");
 
         return new UserInfoDTO(profileImage, email, githubId, nickname);
+    }
+
+    /**
+     * accessToken으로 깃헙 사용자 ID 가져오기
+     * DB에서 해당 유저를 찾기 위해 사용합니다.
+     * @param accessToken: 깃헙에서 받은 access_token
+     * @return: githubId
+     */
+    private String extractGithubId(String accessToken) {
+        String userInfoUrl = "https://api.github.com/user";
+        RestTemplate restTemplate = new RestTemplate();
+        HttpHeaders headers = new HttpHeaders();
+        headers.setBearerAuth(accessToken);
+        headers.setAccept(Collections.singletonList(MediaType.APPLICATION_JSON));
+
+        HttpEntity<Void> request = new HttpEntity<>(headers);
+
+        ResponseEntity<Map> response = restTemplate.exchange(
+                userInfoUrl,
+                HttpMethod.GET,
+                request,
+                Map.class
+        );
+
+        Map<String, Object> userInfoMap = response.getBody();
+        log.info("GitHub user info: {}", userInfoMap);
+        return String.valueOf(userInfoMap.get("id"));
+    }
+
+    /**
+     * 내 프로필 정보 가져오기
+     * @param accessToken header로 받은 accessToken
+     * @return: UserResponseDTO
+     */
+    public UserResponseDTO getMyProfile(String accessToken) {
+        // 1. Github accessToken 으로 githubId 만 확인
+        String githubId = extractGithubId(accessToken);
+
+        // 2. 우리 DB 에서 유저 정보 조회
+        User user = userRepository.findByGithubId(githubId)
+                .orElseThrow(() -> new RuntimeException("유저 정보를 찾을 수 없습니다."));
+
+        // 3. DTO 변환
+        UserResponseDTO userResponse = new UserResponseDTO();
+        userResponse.setGithubId(user.getGithubId());
+        userResponse.setEmail(user.getEmail());
+        userResponse.setNickName(user.getNickname());
+        userResponse.setProfileImage(user.getProfileImage());
+        userResponse.setCreatedAt(user.getCreatedAt());
+        userResponse.setUpdatedAt(user.getUpdatedAt());
+        userResponse.setId(user.getId());
+
+        return userResponse;
     }
 }
