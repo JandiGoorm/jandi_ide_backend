@@ -24,6 +24,12 @@ jobs:
         run: |
           ssh -i ~/.ssh/deploy_key ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }} << 'EOF'
             cd /home/ubuntu/app
+          
+            # GitHub Secrets에서 주입한 값들을 EC2 환경 변수로 설정합니다.
+            export DB_URL="${{ secrets.DB_URL }}"
+            export DB_USERNAME="${{ secrets.DB_USERNAME }}"
+            export DB_PASSWORD="${{ secrets.DB_PASSWORD }}"
+          
             git fetch origin main
             git reset --hard origin/main
             ./deploy.sh
