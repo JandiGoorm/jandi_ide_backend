@@ -1,5 +1,7 @@
 package com.webproject.jandi_ide_backend.user.service;
 
+import com.webproject.jandi_ide_backend.global.error.CustomErrorCodes;
+import com.webproject.jandi_ide_backend.global.error.CustomException;
 import com.webproject.jandi_ide_backend.user.dto.UserInfoDTO;
 import com.webproject.jandi_ide_backend.user.dto.UserLoginDTO;
 import com.webproject.jandi_ide_backend.user.dto.UserResponseDTO;
@@ -32,6 +34,7 @@ public class UserService {
         this.userRepository = userRepository;
     }
 
+
     /**
      * 깃헙 로그인
      * @param code: 깃헙에서 받은 인가 코드
@@ -55,6 +58,7 @@ public class UserService {
                 Map.class
         );
 
+        log.info("response:{}",response);
 
         if (response.getStatusCode().is2xxSuccessful() && response.getBody() != null) {
             Map body = response.getBody();
@@ -85,7 +89,7 @@ public class UserService {
 
             return new UserLoginDTO(accessToken);
         } else {
-            throw new RuntimeException("깃헙 토큰 발급 실패: " + response.getStatusCode());
+            throw new CustomException(CustomErrorCodes.GITHUB_LOGIN_FAILED);
         }
     }
 
@@ -137,16 +141,21 @@ public class UserService {
 
         HttpEntity<Void> request = new HttpEntity<>(headers);
 
-        ResponseEntity<Map> response = restTemplate.exchange(
-                userInfoUrl,
-                HttpMethod.GET,
-                request,
-                Map.class
-        );
+        try{
+            ResponseEntity<Map> response = restTemplate.exchange(
+                    userInfoUrl,
+                    HttpMethod.GET,
+                    request,
+                    Map.class
+            );
 
-        Map<String, Object> userInfoMap = response.getBody();
-        log.info("GitHub user info: {}", userInfoMap);
-        return String.valueOf(userInfoMap.get("id"));
+            Map<String, Object> userInfoMap = response.getBody();
+            log.info("GitHub user info: {}", userInfoMap);
+            return String.valueOf(userInfoMap.get("id"));
+        } catch (Exception e) {
+            throw new CustomException(CustomErrorCodes.USER_NOT_FOUND);
+        }
+
     }
 
     /**
@@ -160,7 +169,7 @@ public class UserService {
 
         // 2. 우리 DB 에서 유저 정보 조회
         User user = userRepository.findByGithubId(githubId)
-                .orElseThrow(() -> new RuntimeException("유저 정보를 찾을 수 없습니다."));
+                .orElseThrow(() -> new CustomException(CustomErrorCodes.USER_NOT_FOUND));
 
         // 3. DTO 변환
         UserResponseDTO userResponse = new UserResponseDTO();

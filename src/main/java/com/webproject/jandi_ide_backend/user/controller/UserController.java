@@ -1,6 +1,8 @@
 package com.webproject.jandi_ide_backend.user.controller;
 
 
+import com.webproject.jandi_ide_backend.global.error.CustomErrorCodes;
+import com.webproject.jandi_ide_backend.global.error.CustomException;
 import com.webproject.jandi_ide_backend.user.dto.UserLoginDTO;
 import com.webproject.jandi_ide_backend.user.dto.UserResponseDTO;
 import com.webproject.jandi_ide_backend.user.dto.UserRequestDTO;
@@ -41,7 +43,7 @@ public class UserController {
         // 1) code가 없으면 에러
         String code = request.getCode();
         if (code == null || code.isBlank()) {
-            throw new RuntimeException("요청한 code 값이 유효하지 않습니다.");
+            throw new CustomException(CustomErrorCodes.INVALID_GITHUB_CODE);
         }
 
         // 2) 깃헙 OAuth 로그인 처리 (깃헙에 토큰 요청 -> accessToken 발급 ->  DB 저장/조회)
@@ -49,7 +51,7 @@ public class UserController {
         try {
             loginResp = userService.getToken(code);
         } catch (Exception e) {
-            throw new RuntimeException("깃헙 로그인 처리 실패: " + e.getMessage());
+            throw new CustomException(CustomErrorCodes.GITHUB_LOGIN_FAILED);
         }
 
         // 3) 최종적으로 토큰 반환
@@ -66,17 +68,13 @@ public class UserController {
     public ResponseEntity<?> getUserProfile(@RequestHeader("Authorization") String token) {
         // 1) 토큰이 없으면 에러
         if (token == null || token.isBlank() || !token.startsWith("Bearer ")) {
-            throw new RuntimeException("토큰이 유효하지 않습니다.");
+            throw new CustomException(CustomErrorCodes.INVALID_GITHUB_TOKEN);
         }
 
         // 2) 사용자 정보 조회
         UserResponseDTO userProfile;
         String accessToken = token.replace("Bearer ", "").trim();
-        try {
-            userProfile = userService.getMyProfile(accessToken);
-        } catch (Exception e) {
-            throw new RuntimeException("사용자 정보 조회 실패: " + e.getMessage());
-        }
+        userProfile = userService.getMyProfile(accessToken);
 
         // 3) 사용자 정보 반환
         return ResponseEntity.ok(userProfile);
