@@ -131,4 +131,33 @@ public class UserController {
         // 3) 수정된 사용자 정보 반환
         return ResponseEntity.ok(userResponse);
     }
+
+    @GetMapping("/{id}")
+    @Operation(summary = "특정 사용자 정보 조회", description = "특정 사용자의 정보를 조회합니다.")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "조회 성공",
+                    content = @Content(schema = @Schema(implementation = UserResponseDTO.class))
+            ),
+    })
+    public ResponseEntity<?> getUser(
+            @Parameter(
+                name = "Authorization",
+                description = "액세스 토큰을 입력해주세요",
+                required = true,
+                example = "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+            )
+            @RequestHeader("Authorization") String token,
+            @PathVariable Long id) {
+        // 1) 토큰이 없으면 에러
+        if (token == null || token.isBlank() || !token.startsWith("Bearer ")) {
+            throw new CustomException(CustomErrorCodes.INVALID_JWT_TOKEN);
+        }
+
+        // 2) 특정 사용자 정보 조회
+        String accessToken = token.replace("Bearer ", "").trim();
+        UserResponseDTO userResponse = userService.getUser(accessToken, id);
+
+        // 3) 특정 사용자 정보 반환
+        return ResponseEntity.ok(userResponse);
+    }
 }

@@ -162,16 +162,7 @@ public class UserService {
                 .orElseThrow(() -> new CustomException(CustomErrorCodes.USER_NOT_FOUND));
 
         // 3. DTO 변환
-        UserResponseDTO userResponse = new UserResponseDTO();
-        userResponse.setGithubId(user.getGithubId());
-        userResponse.setEmail(user.getEmail());
-        userResponse.setNickName(user.getNickname());
-        userResponse.setProfileImage(user.getProfileImage());
-        userResponse.setCreatedAt(user.getCreatedAt());
-        userResponse.setUpdatedAt(user.getUpdatedAt());
-        userResponse.setId(user.getId());
-
-        return userResponse;
+        return convertToDto(user);
     }
 
     /**
@@ -208,15 +199,42 @@ public class UserService {
         }
 
         // 5. DTO 변환
+        return convertToDto(user);
+    }
+
+    /**
+     * 특정 유저 정보 가져오기
+     * @param accessToken header로 받은 accessToken
+     * @param id: 유저 id
+     * @return UserResponseDTO
+     */
+    public UserResponseDTO getUser(String accessToken, Long id) {
+        // 1. accessToken 을 검증합니다.
+        jwtTokenProvider.decodeToken(accessToken);
+
+        // 2. 해당 id의 유저 정보를 가져옵니다.
+        User user = userRepository.findById(id)
+                .orElseThrow(() -> new CustomException(CustomErrorCodes.USER_NOT_FOUND));
+
+        // 3. DTO 변환
+        return convertToDto(user);
+    }
+
+    /**
+     * User 엔티티를 UserResponseDTO로 변환합니다.
+     * @param user 변환할 User 엔티티
+     * @return 변환된 UserResponseDTO 객체
+     */
+    private UserResponseDTO convertToDto(User user) {
         UserResponseDTO userResponse = new UserResponseDTO();
+        userResponse.setId(user.getId());
         userResponse.setGithubId(user.getGithubId());
         userResponse.setEmail(user.getEmail());
         userResponse.setNickName(user.getNickname());
         userResponse.setProfileImage(user.getProfileImage());
+        userResponse.setIntroduction(user.getIntroduction());
         userResponse.setCreatedAt(user.getCreatedAt());
         userResponse.setUpdatedAt(user.getUpdatedAt());
-        userResponse.setId(user.getId());
-
         return userResponse;
     }
 }
