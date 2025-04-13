@@ -41,11 +41,11 @@ public class UserService {
     }
 
 
-    /*     * 깃헙 로그인
-     * 1. 깃헙에서 받은 code 로 access_token 을 요청합니다.
-     * 2. access_token 으로 깃헙 사용자 정보를 가져옵니다.
-     * 3. DB에 해당 유저 정보가 없다면, DB에 저장합니다.
-     * 4. JWT 를 발급합니다.
+    /**
+     * 깃헙 로그인 시, 액세스 토큰을 발급받고, 사용자 정보를 가져옵니다.
+     * DB에 해당 유저 정보가 없다면, DB에 저장합니다.
+     * @param authRequestDTO: 깃헙에서 받은 code
+     * @return AuthResponseDTO
      */
     public AuthResponseDTO login(AuthRequestDTO authRequestDTO) {
         String code = authRequestDTO.getCode();
@@ -101,10 +101,27 @@ public class UserService {
     }
 
     /**
-     * accessToken으로 깃헙 사용자 정보 가져오기
+     * 리프레시 토큰을 통해 새로운 액세스 토큰과 리프레시 토큰을 발급합니다.
+     * @param refreshToken: 리프레시 토큰
+     * @return AuthResponseDTO
+     */
+    public AuthResponseDTO refreshToken(String refreshToken) {
+        TokenInfo tokenInfo = jwtTokenProvider.decodeToken(refreshToken);
+        String githubId = tokenInfo.getGithubId();
+        String githubToken = tokenInfo.getGithubToken();
+
+        // 새로운 액세스 토큰과 리프레시 토큰 생성
+        String newAccessToken = jwtTokenProvider.createAccessToken(githubId, githubToken);
+        String newRefreshToken = jwtTokenProvider.createRefreshToken(githubId, githubToken);
+
+        return new AuthResponseDTO(newAccessToken, newRefreshToken);
+    }
+
+    /**
+     * accessToken 으로 깃헙 사용자 정보 가져오기
      * DB에 해당 유저 정보가 없다면, DB에 저장합니다.
      * @param accessToken: 깃헙에서 받은 access_token
-     * @return: UserInfoDTO
+     * @return UserInfoDTO
      */
     public UserInfoDTO getUserInfo(String accessToken) {
         String userInfoUrl = "https://api.github.com/user";
@@ -134,44 +151,12 @@ public class UserService {
     }
 
     /**
-     * accessToken으로 깃헙 사용자 ID 가져오기
-     * DB에서 해당 유저를 찾기 위해 사용합니다.
-     * @param accessToken: 깃헙에서 받은 access_token
-     * @return: githubId
-     */
-    private String extractGithubId(String accessToken) {
-        String userInfoUrl = "https://api.github.com/user";
-        RestTemplate restTemplate = new RestTemplate();
-        HttpHeaders headers = new HttpHeaders();
-        headers.setBearerAuth(accessToken);
-        headers.setAccept(Collections.singletonList(MediaType.APPLICATION_JSON));
-
-        HttpEntity<Void> request = new HttpEntity<>(headers);
-
-        try{
-            ResponseEntity<Map> response = restTemplate.exchange(
-                    userInfoUrl,
-                    HttpMethod.GET,
-                    request,
-                    Map.class
-            );
-
-            Map<String, Object> userInfoMap = response.getBody();
-            log.info("GitHub user info: {}", userInfoMap);
-            return String.valueOf(userInfoMap.get("id"));
-        } catch (Exception e) {
-            throw new CustomException(CustomErrorCodes.USER_NOT_FOUND);
-        }
-
-    }
-
-    /**
      * 내 프로필 정보 가져오기
      * @param accessToken header로 받은 accessToken
-     * @return: UserResponseDTO
+     * @return UserResponseDTO
      */
     public UserResponseDTO getMe(String accessToken) {
-        TokenInfo tokenInfo = jwtTokenProvider.decodeAccessToken(accessToken);
+        TokenInfo tokenInfo = jwtTokenProvider.decodeToken(accessToken);
 
         // 1. accessToken 으로 githubId 만 확인
         String githubId = tokenInfo.getGithubId();

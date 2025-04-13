@@ -6,7 +6,6 @@ import com.webproject.jandi_ide_backend.user.entity.User;
 import io.jsonwebtoken.*;
 import io.jsonwebtoken.security.Keys;
 import com.webproject.jandi_ide_backend.user.repository.UserRepository;
-import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
@@ -90,16 +89,16 @@ public class JwtTokenProvider {
     /**
      * 액세스 토큰을 디코딩하여 깃헙 아이디와 깃헙 토큰을 추출합니다.
      *
-     * @param accessToken 디코딩할 액세스 토큰
+     * @param token 디코딩할 액세스 토큰
      * @return 깃헙 아이디와 깃헙 토큰이 포함된 TokenInfo 객체
      * @throws CustomException 토큰이 유효하지 않을 경우 예외 발생
      */
-    public TokenInfo decodeAccessToken(String accessToken) {
+    public TokenInfo decodeToken(String token) {
         try {
             Claims claims = Jwts.parserBuilder()
                     .setSigningKey(secretKey)
                     .build()
-                    .parseClaimsJws(accessToken)
+                    .parseClaimsJws(token)
                     .getBody();
 
             String githubId = claims.getSubject();
@@ -109,10 +108,10 @@ public class JwtTokenProvider {
             return new TokenInfo(githubId, githubToken);
         } catch (ExpiredJwtException e) {
             log.error("만료된 JWT 토큰입니다: {}", e.getMessage());
-            throw new CustomException(CustomErrorCodes.EXPIRED_GITHUB_TOKEN);
+            throw new CustomException(CustomErrorCodes.EXPIRED_JWT_TOKEN);
         } catch (JwtException | IllegalArgumentException e) {
             log.error("유효하지 않은 JWT 토큰입니다: {}", e.getMessage());
-            throw new CustomException(CustomErrorCodes.INVALID_GITHUB_TOKEN);
+            throw new CustomException(CustomErrorCodes.INVALID_JWT_TOKEN);
         }
     }
 }

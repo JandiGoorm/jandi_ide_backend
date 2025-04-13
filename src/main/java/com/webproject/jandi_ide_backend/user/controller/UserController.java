@@ -4,6 +4,7 @@ package com.webproject.jandi_ide_backend.user.controller;
 import com.webproject.jandi_ide_backend.global.error.CustomErrorCodes;
 import com.webproject.jandi_ide_backend.global.error.CustomException;
 import com.webproject.jandi_ide_backend.user.dto.AuthResponseDTO;
+import com.webproject.jandi_ide_backend.user.dto.RefreshDTO;
 import com.webproject.jandi_ide_backend.user.dto.UserResponseDTO;
 import com.webproject.jandi_ide_backend.user.dto.AuthRequestDTO;
 import com.webproject.jandi_ide_backend.user.service.UserService;
@@ -17,6 +18,8 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
+
+import java.util.Map;
 
 
 /**
@@ -33,7 +36,7 @@ public class UserController {
         this.userService = userService;
     }
 
-    @Operation(summary = "깃허브 로그인", description = "GitHub OAuth code 를 이용하여 로그인 후 access token 을 발급합니다.")
+    @Operation(summary = "깃허브 로그인", description = "GitHub OAuth code 를 이용하여 로그인 후 JWT 토큰을 발급합니다.")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "로그인 성공",
                     content = @Content(schema = @Schema(implementation = AuthResponseDTO.class))
@@ -49,18 +52,14 @@ public class UserController {
 
         // 2) 깃헙 OAuth 로그인 처리 (깃헙에 토큰 요청 -> accessToken 발급 ->  DB 저장/조회)
         AuthResponseDTO loginResp;
-        try {
-            loginResp = userService.login(request);
-        } catch (Exception e) {
-            throw new CustomException(CustomErrorCodes.GITHUB_LOGIN_FAILED);
-        }
+        loginResp = userService.login(request);
 
         // 3) 최종적으로 토큰 반환
         return ResponseEntity.ok(loginResp);
     }
 
     @GetMapping("/me")
-    @Operation(summary = "사용자 정보 조회", description = "사용자의 정보를 조회합니다.")
+    @Operation(summary = "내 정보 조회", description = "내 정보를 조회합니다.")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "조회 성공",
                     content = @Content(schema = @Schema(implementation = UserResponseDTO.class))
@@ -86,5 +85,23 @@ public class UserController {
 
         // 3) 사용자 정보 반환
         return ResponseEntity.ok(userProfile);
+    }
+
+    @PostMapping("/refresh")
+    @Operation(summary = "리프레시 토큰 갱신", description = "리프레시 토큰을 이용하여 새로운 JWT 토큰을 발급합니다.")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "리프레시 토큰 갱신 성공",
+                    content = @Content(schema = @Schema(implementation = AuthResponseDTO.class))
+            ),
+    })
+    public ResponseEntity<?> refresh(@RequestBody RefreshDTO request){
+        String refreshToken = request.getRefreshToken();
+
+        if (refreshToken == null || refreshToken.isBlank()) {
+            throw new CustomException(CustomErrorCodes.INVALID_GITHUB_TOKEN);
+        }
+
+        AuthResponseDTO authRespDTO = userService.refreshToken(refreshToken);
+        return ResponseEntity.ok(authRespDTO);
     }
 }
