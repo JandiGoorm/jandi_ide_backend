@@ -75,7 +75,7 @@ public class UserController {
             @RequestHeader("Authorization") String token) {
         // 1) 토큰이 없으면 에러
         if (token == null || token.isBlank() || !token.startsWith("Bearer ")) {
-            throw new CustomException(CustomErrorCodes.INVALID_GITHUB_TOKEN);
+            throw new CustomException(CustomErrorCodes.INVALID_JWT_TOKEN);
         }
 
         // 2) 사용자 정보 조회
@@ -98,7 +98,7 @@ public class UserController {
         String refreshToken = request.getRefreshToken();
 
         if (refreshToken == null || refreshToken.isBlank()) {
-            throw new CustomException(CustomErrorCodes.INVALID_GITHUB_TOKEN);
+            throw new CustomException(CustomErrorCodes.INVALID_JWT_TOKEN);
         }
 
         AuthResponseDTO authRespDTO = userService.refreshToken(refreshToken);
