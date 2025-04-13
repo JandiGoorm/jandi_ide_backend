@@ -2,8 +2,11 @@ package com.webproject.jandi_ide_backend.user.service;
 
 import com.webproject.jandi_ide_backend.global.error.CustomErrorCodes;
 import com.webproject.jandi_ide_backend.global.error.CustomException;
+import com.webproject.jandi_ide_backend.security.JwtTokenProvider;
+import com.webproject.jandi_ide_backend.security.TokenInfo;
+import com.webproject.jandi_ide_backend.user.dto.AuthRequestDTO;
 import com.webproject.jandi_ide_backend.user.dto.UserInfoDTO;
-import com.webproject.jandi_ide_backend.user.dto.UserLoginDTO;
+import com.webproject.jandi_ide_backend.user.dto.AuthResponseDTO;
 import com.webproject.jandi_ide_backend.user.dto.UserResponseDTO;
 import com.webproject.jandi_ide_backend.user.entity.User;
 import com.webproject.jandi_ide_backend.user.repository.UserRepository;
@@ -22,6 +25,8 @@ import java.util.Map;
 @Slf4j
 @Service
 public class UserService {
+    private final JwtTokenProvider jwtTokenProvider;
+
     @Value("${github.client.id}")
     private String githubClientId;
 
@@ -30,17 +35,20 @@ public class UserService {
 
     private final UserRepository userRepository;
 
-    public UserService(UserRepository userRepository) {
+    public UserService(UserRepository userRepository, JwtTokenProvider jwtTokenProvider) {
         this.userRepository = userRepository;
+        this.jwtTokenProvider = jwtTokenProvider;
     }
 
 
-    /**
-     * 깃헙 로그인
-     * @param code: 깃헙에서 받은 인가 코드
-     * @return: access_token
+    /*     * 깃헙 로그인
+     * 1. 깃헙에서 받은 code 로 access_token 을 요청합니다.
+     * 2. access_token 으로 깃헙 사용자 정보를 가져옵니다.
+     * 3. DB에 해당 유저 정보가 없다면, DB에 저장합니다.
+     * 4. JWT 를 발급합니다.
      */
-    public UserLoginDTO getToken(String code) {
+    public AuthResponseDTO login(AuthRequestDTO authRequestDTO) {
+        String code = authRequestDTO.getCode();
         String tokenUrl = "https://github.com/login/oauth/access_token";
 
         MultiValueMap<String, String> params = new LinkedMultiValueMap<>();
@@ -64,8 +72,6 @@ public class UserService {
             Map body = response.getBody();
             String accessToken = (String) body.get("access_token");
 
-            // 여기서 해당 유저의 정보를 가져옵니다.
-            // 필요한 값은 githubId, nickname , email , profileImage 입니다.
             UserInfoDTO userInfo = getUserInfo(accessToken);
             log.info("userInfo: {}", userInfo);
             String githubId = userInfo.getGithubId();
@@ -86,8 +92,9 @@ public class UserService {
                     log.error("Error saving user: {}", e.getMessage());
                 }
             }
-
-            return new UserLoginDTO(accessToken);
+            String jwtAccessToken = jwtTokenProvider.createAccessToken(githubId, accessToken);
+            String jwtRefreshToken = jwtTokenProvider.createRefreshToken(githubId, accessToken);
+            return new AuthResponseDTO(jwtAccessToken,jwtRefreshToken);
         } else {
             throw new CustomException(CustomErrorCodes.GITHUB_LOGIN_FAILED);
         }
@@ -163,9 +170,11 @@ public class UserService {
      * @param accessToken header로 받은 accessToken
      * @return: UserResponseDTO
      */
-    public UserResponseDTO getMyProfile(String accessToken) {
-        // 1. Github accessToken 으로 githubId 만 확인
-        String githubId = extractGithubId(accessToken);
+    public UserResponseDTO getMe(String accessToken) {
+        TokenInfo tokenInfo = jwtTokenProvider.decodeAccessToken(accessToken);
+
+        // 1. accessToken 으로 githubId 만 확인
+        String githubId = tokenInfo.getGithubId();
 
         // 2. 우리 DB 에서 유저 정보 조회
         User user = userRepository.findByGithubId(githubId)

@@ -11,10 +11,11 @@ import org.springframework.http.HttpStatus;
 @Getter
 public enum CustomErrorCodes implements CustomErrorCodeInterface {
     // 400번대 에러
-    INVALID_GITHUB_CODE(HttpStatus.BAD_REQUEST, "INVALID_GITHUB_CODE", "Invalid GitHub code"),
-    INVALID_GITHUB_TOKEN(HttpStatus.BAD_REQUEST, "INVALID_GITHUB_TOKEN", "Invalid GitHub token"),
-    GITHUB_LOGIN_FAILED(HttpStatus.BAD_REQUEST, "GITHUB_LOGIN_FAILED", "GitHub login failed"),
-    USER_NOT_FOUND(HttpStatus.NOT_FOUND, "USER_NOT_FOUND", "User not found");
+    INVALID_GITHUB_CODE(HttpStatus.BAD_REQUEST, "INVALID_GITHUB_CODE", "Invalid GitHub code"), // 유효하지 않은 깃헙 코드
+    INVALID_GITHUB_TOKEN(HttpStatus.BAD_REQUEST, "INVALID_GITHUB_TOKEN", "Invalid GitHub token"), // 유효하지 않은 깃헙 토큰
+    EXPIRED_GITHUB_TOKEN(HttpStatus.UNAUTHORIZED, "EXPIRED_GITHUB_TOKEN", "Expired GitHub token"), // 만료된 깃헙 토큰
+    GITHUB_LOGIN_FAILED(HttpStatus.BAD_REQUEST, "GITHUB_LOGIN_FAILED", "GitHub login failed"), // 깃헙 로그인 실패
+    USER_NOT_FOUND(HttpStatus.NOT_FOUND, "USER_NOT_FOUND", "User not found"); // 유저를 찾을 수 없음
 
     private final HttpStatus statusCode;
     private final String errorCode;
