@@ -3,10 +3,7 @@ package com.webproject.jandi_ide_backend.user.controller;
 
 import com.webproject.jandi_ide_backend.global.error.CustomErrorCodes;
 import com.webproject.jandi_ide_backend.global.error.CustomException;
-import com.webproject.jandi_ide_backend.user.dto.AuthResponseDTO;
-import com.webproject.jandi_ide_backend.user.dto.RefreshDTO;
-import com.webproject.jandi_ide_backend.user.dto.UserResponseDTO;
-import com.webproject.jandi_ide_backend.user.dto.AuthRequestDTO;
+import com.webproject.jandi_ide_backend.user.dto.*;
 import com.webproject.jandi_ide_backend.user.service.UserService;
 import io.swagger.v3.oas.annotations.Parameter;
 import org.springframework.http.ResponseEntity;
@@ -103,5 +100,35 @@ public class UserController {
 
         AuthResponseDTO authRespDTO = userService.refreshToken(refreshToken);
         return ResponseEntity.ok(authRespDTO);
+    }
+
+    @PutMapping("/{id}")
+    @Operation(summary = "내 정보 수정", description = "내 정보를 수정합니다.")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "수정 성공",
+                    content = @Content(schema = @Schema(implementation = UserResponseDTO.class))
+            ),
+    })
+    public ResponseEntity<?> updateUser(
+            @Parameter(
+                name = "Authorization",
+                description = "액세스 토큰을 입력해주세요",
+                required = true,
+                example = "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+            )
+            @RequestHeader("Authorization") String token,
+            @PathVariable Long id,
+            @RequestBody UserUpdateDTO userUpdateDTO) {
+        // 1) 토큰이 없으면 에러
+        if (token == null || token.isBlank() || !token.startsWith("Bearer ")) {
+            throw new CustomException(CustomErrorCodes.INVALID_JWT_TOKEN);
+        }
+
+        // 2) 사용자 정보 수정
+        String accessToken = token.replace("Bearer ", "").trim();
+        UserResponseDTO userResponse = userService.updateUser(accessToken, id, userUpdateDTO);
+
+        // 3) 수정된 사용자 정보 반환
+        return ResponseEntity.ok(userResponse);
     }
 }

@@ -4,10 +4,7 @@ import com.webproject.jandi_ide_backend.global.error.CustomErrorCodes;
 import com.webproject.jandi_ide_backend.global.error.CustomException;
 import com.webproject.jandi_ide_backend.security.JwtTokenProvider;
 import com.webproject.jandi_ide_backend.security.TokenInfo;
-import com.webproject.jandi_ide_backend.user.dto.AuthRequestDTO;
-import com.webproject.jandi_ide_backend.user.dto.UserInfoDTO;
-import com.webproject.jandi_ide_backend.user.dto.AuthResponseDTO;
-import com.webproject.jandi_ide_backend.user.dto.UserResponseDTO;
+import com.webproject.jandi_ide_backend.user.dto.*;
 import com.webproject.jandi_ide_backend.user.entity.User;
 import com.webproject.jandi_ide_backend.user.repository.UserRepository;
 import org.springframework.beans.factory.annotation.Value;
@@ -140,7 +137,6 @@ public class UserService {
         );
 
         Map<String, Object> userInfoMap = response.getBody();
-        log.info("GitHub user info: {}", userInfoMap);
 
         String profileImage = (String) userInfoMap.get("avatar_url");
         String email = (String) userInfoMap.get("email");
@@ -166,6 +162,52 @@ public class UserService {
                 .orElseThrow(() -> new CustomException(CustomErrorCodes.USER_NOT_FOUND));
 
         // 3. DTO 변환
+        UserResponseDTO userResponse = new UserResponseDTO();
+        userResponse.setGithubId(user.getGithubId());
+        userResponse.setEmail(user.getEmail());
+        userResponse.setNickName(user.getNickname());
+        userResponse.setProfileImage(user.getProfileImage());
+        userResponse.setCreatedAt(user.getCreatedAt());
+        userResponse.setUpdatedAt(user.getUpdatedAt());
+        userResponse.setId(user.getId());
+
+        return userResponse;
+    }
+
+    /**
+     * 내 정보 업데이트
+     * @param acessToken header로 받은 accessToken
+     * @param id: 유저 id
+     * @param userUpdateDTO: 유저 정보 업데이트 DTO
+     * @return UserResponseDTO
+     */
+    public UserResponseDTO updateUser(String acessToken, Long id, UserUpdateDTO userUpdateDTO) {
+        TokenInfo tokenInfo = jwtTokenProvider.decodeToken(acessToken);
+        String githubId = tokenInfo.getGithubId();
+
+        // 1. 유저 정보를 가져옵니다.
+        User user = userRepository.findByGithubId(githubId)
+                .orElseThrow(() -> new CustomException(CustomErrorCodes.USER_NOT_FOUND));
+
+        // 2. 자신의 정보 인지 확인합니다.
+        if (!id.equals(user.getId().longValue())) {
+            throw new CustomException(CustomErrorCodes.PERMISSION_DENIED);
+        }
+
+        // 3. 유저 정보 업데이트
+        user.setNickname(userUpdateDTO.getNickname());
+        user.setProfileImage(userUpdateDTO.getProfileImage());
+        user.setEmail(userUpdateDTO.getEmail());
+        user.setIntroduction(userUpdateDTO.getIntroduction());
+
+        // 4. DB에 저장
+        try{
+            userRepository.save(user);
+        }catch (Exception e){
+            log.error("Error saving user: {}", e.getMessage());
+        }
+
+        // 5. DTO 변환
         UserResponseDTO userResponse = new UserResponseDTO();
         userResponse.setGithubId(user.getGithubId());
         userResponse.setEmail(user.getEmail());
