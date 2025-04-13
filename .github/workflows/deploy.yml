@@ -31,7 +31,6 @@ jobs:
             export DB_PASSWORD="${{ secrets.DB_PASSWORD }}"
             export GITHUB_CLIENT_ID="${{ secrets.GH_CLIENT_ID }}"
             export GITHUB_CLIENT_SECRET="${{ secrets.GH_CLIENT_SECRET }}"
-            export REDIS_HOST="${{ secrets.REDIS_HOST }}"
             export REDIS_PW="${{ secrets.REDIS_PW }}"
           
             git fetch origin main
