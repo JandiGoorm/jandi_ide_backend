@@ -39,10 +39,6 @@ jobs:
             # deploy.sh 실행
             ./deploy.sh
           
-            # Redis 연결 확인
-            echo "Checking Redis connection..."
-            redis-cli -h ${REDIS_HOST} -a ${REDIS_PW} ping
-          
             # 애플리케이션 시작 대기
             echo "Waiting for application to start..."
             max_attempts=30
