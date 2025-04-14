@@ -70,7 +70,6 @@ public class UserService {
             String accessToken = (String) body.get("access_token");
 
             UserInfoDTO userInfo = getUserInfo(accessToken);
-            log.info("userInfo: {}", userInfo);
             String githubId = userInfo.getGithubId();
 
             // 해당 githubId가 DB에 존재하지 않는다면, 저장 해야합니다.
@@ -82,6 +81,7 @@ public class UserService {
                 newUser.setProfileImage(userInfo.getProfileImage());
                 newUser.setNickname(userInfo.getNickname());
                 newUser.setEmail(userInfo.getEmail());
+                newUser.setGithubUsername(userInfo.getNickname());
 
                 try{
                     userRepository.save(newUser);
@@ -89,6 +89,7 @@ public class UserService {
                     log.error("Error saving user: {}", e.getMessage());
                 }
             }
+
             String jwtAccessToken = jwtTokenProvider.createAccessToken(githubId, accessToken);
             String jwtRefreshToken = jwtTokenProvider.createRefreshToken(githubId, accessToken);
             return new AuthResponseDTO(jwtAccessToken,jwtRefreshToken);
@@ -186,10 +187,10 @@ public class UserService {
         }
 
         // 3. 유저 정보 업데이트
-        user.setNickname(userUpdateDTO.getNickname());
         user.setProfileImage(userUpdateDTO.getProfileImage());
         user.setEmail(userUpdateDTO.getEmail());
         user.setIntroduction(userUpdateDTO.getIntroduction());
+        user.setNickname(userUpdateDTO.getNickname());
 
         // 4. DB에 저장
         try{
@@ -235,6 +236,7 @@ public class UserService {
         userResponse.setIntroduction(user.getIntroduction());
         userResponse.setCreatedAt(user.getCreatedAt());
         userResponse.setUpdatedAt(user.getUpdatedAt());
+        userResponse.setGithubUsername(user.getGithubUsername());
         return userResponse;
     }
 }

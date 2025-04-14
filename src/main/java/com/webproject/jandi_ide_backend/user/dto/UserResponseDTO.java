@@ -12,6 +12,7 @@ public class UserResponseDTO {
     private String introduction;
     private String email;
     private String nickName;
+    private String githubUsername;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
 
