@@ -10,46 +10,73 @@ import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 
 import java.time.LocalDateTime;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+import java.util.UUID;
 
+/**
+ * 채팅방(ChatRoom) 관련 비즈니스 로직을 처리하는 서비스 클래스입니다.
+ * Redis를 주 데이터 저장소로 사용하여 채팅방 정보를 관리합니다.
+ */
 @Slf4j
 @Service
 @RequiredArgsConstructor
 public class ChatRoomService {
-    private static final String CHAT_ROOMS_KEY = "CHAT_ROOMS";
-    private final RedisTemplate<String, Object> redisTemplate;
-    private final ObjectMapper objectMapper; // ObjectMapper 필드 추가 (final이어야 RequiredArgsConstructor가 처리)
 
-    // 채팅방 생성 - 파라미터 변경
+    // Redis에서 채팅방 목록 데이터를 저장하는 Hash의 키
+    private static final String CHAT_ROOMS_KEY = "CHAT_ROOMS";
+    // Redis 작업을 위한 Template (Key: String, Value: Object - JSON 직렬화)
+    private final RedisTemplate<String, Object> redisTemplate;
+    // Redis에서 가져온 Object(주로 LinkedHashMap)를 ChatRoom DTO로 변환하기 위한 ObjectMapper
+    private final ObjectMapper objectMapper;
+
+    /**
+     * 새로운 채팅방을 생성하고 Redis에 저장합니다.
+     *
+     * @param chatRoomDto 생성할 채팅방의 정보를 담은 DTO (name, description, createdBy 포함)
+     * @return 생성된 채팅방 정보 객체 (ChatRoom)
+     * @throws IllegalArgumentException 사용자 이름(createdBy)이 DTO에 없을 경우 발생
+     */
     public ChatRoom createRoom(ChatRoomDTO chatRoomDto) {
-        // DTO에서 사용자 이름 가져오기
         String username = chatRoomDto.getCreatedBy();
-        // 사용자 이름 유효성 검사 (선택 사항)
         if (!StringUtils.hasText(username)) {
             log.error("Username is required to create a chat room.");
-            // 예외를 던지거나 null을 반환하는 등의 처리 필요
             throw new IllegalArgumentException("Username cannot be empty when creating a room.");
         }
 
+        // ChatRoom 객체 생성
         ChatRoom chatRoom = ChatRoom.builder()
-                .roomId(UUID.randomUUID().toString())
+                .roomId(UUID.randomUUID().toString()) // 고유 ID 생성
                 .name(chatRoomDto.getName())
                 .description(chatRoomDto.getDescription())
-                .createdBy(username) // DTO에서 가져온 이름 사용
-                .createdAt(LocalDateTime.now().toString())
+                .createdBy(username)
+                .createdAt(LocalDateTime.now().toString()) // 생성 시간 기록
                 .build();
 
-        redisTemplate.opsForHash().put(CHAT_ROOMS_KEY, chatRoom.getRoomId(), chatRoom);
-        log.info("Created chat room: {}", chatRoom);
+        // Redis Hash에 채팅방 정보 저장 (Key: CHAT_ROOMS_KEY, HashKey: roomId, Value: chatRoom 객체 -> JSON)
+        try {
+            redisTemplate.opsForHash().put(CHAT_ROOMS_KEY, chatRoom.getRoomId(), chatRoom);
+            log.info("Created and saved chat room to Redis: {}", chatRoom);
+        } catch (Exception e) {
+            log.error("Failed to save chat room {} to Redis: {}", chatRoom.getRoomId(), e.getMessage(), e);
+            // 저장 실패 시 예외를 다시 던지거나, null 반환 또는 다른 오류 처리 로직 추가 가능
+            throw new RuntimeException("Failed to save chat room to Redis", e);
+        }
         return chatRoom;
     }
 
-    // 전체 채팅방 조회
+    /**
+     * Redis에 저장된 모든 채팅방 목록을 조회합니다.
+     * Redis에서 가져온 값들을 ChatRoom 객체로 변환하여 반환합니다.
+     *
+     * @return 모든 채팅방 정보가 담긴 List<ChatRoom>
+     */
     public List<ChatRoom> findAllRooms() {
         log.debug("Attempting to find all chat rooms from Redis key: {}", CHAT_ROOMS_KEY);
         List<ChatRoom> chatRooms = new ArrayList<>();
         try {
-            // HGETALL 과 유사하게 Map<Object, Object> 형태로 가져오기
+            // Redis Hash의 모든 필드-값 쌍을 가져옴 (Map<roomId, chatRoomJson>)
             Map<Object, Object> rawEntries = redisTemplate.opsForHash().entries(CHAT_ROOMS_KEY);
             log.debug("Found {} raw entries in Redis hash.", rawEntries.size());
 
@@ -58,44 +85,102 @@ public class ChatRoomService {
                 return chatRooms; // 빈 리스트 반환
             }
 
+            // 각 항목을 순회하며 ChatRoom 객체로 변환 시도
             for (Map.Entry<Object, Object> entry : rawEntries.entrySet()) {
-                String roomId = "Unknown"; // 기본값
+                String roomId = entry.getKey().toString(); // Hash 키는 String으로 가정
                 Object rawValue = entry.getValue();
+
+                if (rawValue == null) {
+                    log.warn("Raw value for roomId {} is null. Skipping.", roomId);
+                    continue;
+                }
+
                 try {
-                    // ObjectMapper를 사용하여 rawValue (아마도 LinkedHashMap)를 ChatRoom 객체로 변환
+                    // ObjectMapper를 사용하여 Redis에서 가져온 값(Object)을 ChatRoom 클래스로 변환
                     ChatRoom room = objectMapper.convertValue(rawValue, ChatRoom.class);
                     if (room != null) {
+                        // 변환 성공 시 리스트에 추가
                         chatRooms.add(room);
-                        log.debug("Successfully converted entry for roomId {} to ChatRoom.", roomId);
+                        log.trace("Successfully converted entry for roomId {} to ChatRoom.", roomId); // 상세 로그는 Trace 레벨로
                     } else {
+                        // 변환 결과가 null인 경우 (드문 경우)
                         log.warn("ObjectMapper conversion resulted in null for roomId {}", roomId);
                     }
                 } catch (IllegalArgumentException e) {
-                    // 변환 중 오류 발생 시 (예: 필드 불일치)
+                    // 변환 실패 시 (예: JSON 구조가 ChatRoom과 맞지 않음)
                     log.error("Failed to convert raw value to ChatRoom for roomId {}. Value type: [{}], Value: {}",
-                            roomId, rawValue.getClass().getName(), rawValue.toString(), e);
+                            roomId, rawValue.getClass().getName(), rawValue.toString().substring(0, Math.min(rawValue.toString().length(), 100)), e); // 로그 길이를 제한하여 출력
+                } catch (Exception e) {
+                    // 기타 예외 처리
+                    log.error("Unexpected error converting raw value for roomId {}: {}", roomId, e.getMessage(), e);
                 }
             }
-            log.info("Successfully processed {} chat rooms.", chatRooms.size()); // 정보 레벨로 변경
+            log.info("Successfully processed {} chat rooms.", chatRooms.size());
             return chatRooms;
 
         } catch (Exception e) {
-            // Redis 접근 자체 또는 전체 처리 중 예외 발생 시 로깅
+            // Redis 접근 자체에서 오류 발생 시
             log.error("FATAL: Failed to retrieve or process chat rooms from Redis key {}: {}", CHAT_ROOMS_KEY, e.getMessage(), e);
-            // 예외를 다시 던져서 ControllerAdvice 등에서 처리하거나, 빈 리스트/null 반환 고려
-            // 여기서 RuntimeException을 던지면 보통 500 Internal Server Error가 됩니다.
-            // 400 Bad Request가 계속 반환된다면 다른 원인(ControllerAdvice 등)일 가능성이 높습니다.
+            // 서비스 사용자에게 예외를 전파
             throw new RuntimeException("Error fetching chat rooms from Redis", e);
         }
     }
 
-    // 특정 채팅방 조회
+    /**
+     * 특정 ID에 해당하는 채팅방 정보를 Redis에서 조회합니다.
+     *
+     * @param roomId 조회할 채팅방의 ID
+     * @return 조회된 채팅방 정보 객체 (ChatRoom), 없거나 변환 실패 시 null 반환
+     */
     public ChatRoom findRoomById(String roomId) {
-        return (ChatRoom) redisTemplate.opsForHash().get(CHAT_ROOMS_KEY, roomId);
+        log.debug("Attempting to find chat room by ID: {}", roomId);
+        try {
+            // Redis Hash에서 특정 roomId에 해당하는 값을 가져옴
+            Object rawValue = redisTemplate.opsForHash().get(CHAT_ROOMS_KEY, roomId);
+            if (rawValue == null) {
+                log.debug("Chat room not found in Redis for ID: {}", roomId);
+                return null; // 방이 없으면 null 반환
+            }
+
+            // ObjectMapper를 사용하여 가져온 값(Object)을 ChatRoom 클래스로 변환
+            ChatRoom room = objectMapper.convertValue(rawValue, ChatRoom.class);
+            log.debug("Successfully found and converted chat room for ID: {}", roomId);
+            return room;
+
+        } catch (IllegalArgumentException e) {
+            // 변환 실패 시
+            log.error("Failed to convert raw value to ChatRoom for roomId {}. Value retrieved: {}",
+                    roomId, redisTemplate.opsForHash().get(CHAT_ROOMS_KEY, roomId), e);
+            return null;
+        } catch (Exception e) {
+            // Redis 접근 오류 등 기타 예외
+            log.error("Error finding chat room by ID {} from Redis: {}", roomId, e.getMessage(), e);
+            throw new RuntimeException("Error finding chat room from Redis", e); // 또는 null 반환
+        }
     }
 
-    // 채팅방 삭제
+    /**
+     * 특정 ID에 해당하는 채팅방을 Redis에서 삭제합니다.
+     *
+     * @param roomId 삭제할 채팅방의 ID
+     * @return 삭제 성공 시 true, 대상이 없거나 실패 시 false
+     */
     public boolean deleteRoom(String roomId) {
-        return redisTemplate.opsForHash().delete(CHAT_ROOMS_KEY, roomId) == 1;
+        log.debug("Attempting to delete chat room by ID: {}", roomId);
+        try {
+            // Redis Hash에서 특정 roomId 필드를 삭제하고, 삭제된 필드 개수(1 또는 0)를 반환받음
+            Long deletedCount = redisTemplate.opsForHash().delete(CHAT_ROOMS_KEY, roomId);
+            boolean success = deletedCount != null && deletedCount == 1;
+            if (success) {
+                log.info("Successfully deleted chat room with ID: {}", roomId);
+            } else {
+                log.warn("Chat room with ID {} not found or not deleted.", roomId);
+            }
+            return success;
+        } catch (Exception e) {
+            log.error("Error deleting chat room with ID {} from Redis: {}", roomId, e.getMessage(), e);
+            // 삭제 실패 시 false 반환 또는 예외 처리
+            return false;
+        }
     }
 }
