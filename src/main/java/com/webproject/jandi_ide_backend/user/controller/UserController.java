@@ -6,6 +6,7 @@ import com.webproject.jandi_ide_backend.global.error.CustomException;
 import com.webproject.jandi_ide_backend.user.dto.*;
 import com.webproject.jandi_ide_backend.user.service.UserService;
 import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.media.ArraySchema;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -15,8 +16,6 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
-
-import java.util.Map;
 
 
 /**
@@ -40,7 +39,7 @@ public class UserController {
             ),
     })
     @PostMapping("/login")
-    public ResponseEntity<?> login(@RequestBody AuthRequestDTO request) {
+    public ResponseEntity<AuthResponseDTO> login(@RequestBody AuthRequestDTO request) {
         String code = request.getCode();
         // 1) code가 없으면 에러
         if (code == null || code.isBlank()) {
@@ -62,7 +61,7 @@ public class UserController {
                     content = @Content(schema = @Schema(implementation = UserResponseDTO.class))
             ),
     })
-    public ResponseEntity<?> getMe(
+    public ResponseEntity<UserResponseDTO> getMe(
             @Parameter(
                 name = "Authorization",
                 description = "액세스 토큰을 입력해주세요",
@@ -91,7 +90,7 @@ public class UserController {
                     content = @Content(schema = @Schema(implementation = AuthResponseDTO.class))
             ),
     })
-    public ResponseEntity<?> refresh(@RequestBody RefreshDTO request){
+    public ResponseEntity<AuthResponseDTO> refresh(@RequestBody RefreshDTO request){
         String refreshToken = request.getRefreshToken();
 
         if (refreshToken == null || refreshToken.isBlank()) {
@@ -109,7 +108,7 @@ public class UserController {
                     content = @Content(schema = @Schema(implementation = UserResponseDTO.class))
             ),
     })
-    public ResponseEntity<?> updateUser(
+    public ResponseEntity<UserResponseDTO> updateUser(
             @Parameter(
                 name = "Authorization",
                 description = "액세스 토큰을 입력해주세요",
@@ -139,7 +138,7 @@ public class UserController {
                     content = @Content(schema = @Schema(implementation = UserResponseDTO.class))
             ),
     })
-    public ResponseEntity<?> getUser(
+    public ResponseEntity<UserResponseDTO> getUser(
             @Parameter(
                 name = "Authorization",
                 description = "액세스 토큰을 입력해주세요",
@@ -158,6 +157,35 @@ public class UserController {
         UserResponseDTO userResponse = userService.getUser(accessToken, id);
 
         // 3) 특정 사용자 정보 반환
+        return ResponseEntity.ok(userResponse);
+    }
+
+    @GetMapping("/{id}/repos")
+    @Operation(summary = "자신의 깃헙 레포지토리 조회", description = "자신의 레포지토리를 조회합니다.")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "조회 성공",
+                    content = @Content(array = @ArraySchema(schema = @Schema(implementation = UserRepoDTO.class)))
+            ),
+    })
+    public ResponseEntity<UserRepoDTO[]> getMyRepos(
+            @Parameter(
+                name = "Authorization",
+                description = "액세스 토큰을 입력해주세요",
+                required = true,
+                example = "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+            )
+            @RequestHeader("Authorization") String token,
+            @PathVariable Long id) {
+        // 1) 토큰이 없으면 에러
+        if (token == null || token.isBlank() || !token.startsWith("Bearer ")) {
+            throw new CustomException(CustomErrorCodes.INVALID_JWT_TOKEN);
+        }
+
+        // 2) 자신의 레포지토리 조회
+        String accessToken = token.replace("Bearer ", "").trim();
+        UserRepoDTO[] userResponse = userService.getUserRepos(accessToken, id);
+
+        // 3) 자신의 레포지토리 반환
         return ResponseEntity.ok(userResponse);
     }
 }

@@ -15,6 +15,8 @@ import org.springframework.util.MultiValueMap;
 import org.springframework.web.client.RestTemplate;
 import lombok.extern.slf4j.Slf4j;
 
+import java.time.LocalDateTime;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.Optional;
 import java.util.Map;
@@ -148,6 +150,70 @@ public class UserService {
     }
 
     /**
+     * 자신의 깃헙 레포지토리 정보 가져오기
+     * @param accessToken: header 로 받은 accessToken
+     * @param id: 유저 id
+     */
+    public UserRepoDTO[] getUserRepos(String accessToken,Long id){
+        TokenInfo tokenInfo = jwtTokenProvider.decodeToken(accessToken);
+        String githubId = tokenInfo.getGithubId();
+        String githubToken = tokenInfo.getGithubToken();
+
+        // 1. 유저 정보를 가져옵니다.
+        User user = userRepository.findByGithubId(githubId)
+                .orElseThrow(() -> new CustomException(CustomErrorCodes.USER_NOT_FOUND));
+
+        // 2. 자신의 정보 인지 확인합니다.
+        if (!id.equals(user.getId().longValue())) {
+            throw new CustomException(CustomErrorCodes.PERMISSION_DENIED);
+        }
+
+        // 3. 깃헙 API를 통해 유저의 레포지토리 정보를 가져옵니다.
+        String reposUrl = String.format("https://api.github.com/users/%s/repos", user.getGithubUsername());
+        RestTemplate restTemplate = new RestTemplate();
+        HttpHeaders headers = new HttpHeaders();
+        headers.setBearerAuth(githubToken);
+        headers.setAccept(Collections.singletonList(MediaType.APPLICATION_JSON));
+        HttpEntity<Void> request = new HttpEntity<>(headers);
+        ResponseEntity<Map[]> response = restTemplate.exchange(
+                reposUrl,
+                HttpMethod.GET,
+                request,
+                Map[].class
+        );
+
+        Map[] repos = response.getBody();
+
+        // 4. 레포지토리 정보에서 필요한 데이터만 추출하여 DTO로 변환합니다.
+        UserRepoDTO[] userRepoDTOs = Arrays.stream(repos)
+                .filter(repo -> !(Boolean) repo.get("private")) // 공개 레포지토리만 필터링
+                .map(repo -> {
+                    UserRepoDTO dto = new UserRepoDTO();
+                    dto.setName((String) repo.get("name"));
+                    dto.setDescription((String) repo.get("description"));
+                    dto.setHtmlUrl((String) repo.get("html_url"));
+
+                    Map<String, Object> ownerMap = (Map<String, Object>) repo.get("owner");
+                    dto.setOwner((String) ownerMap.get("login"));
+
+                    // GitHub API에서 제공하는 updated_at 문자열을 LocalDateTime으로 변환
+                    String updatedAtStr = (String) repo.get("updated_at");
+                    if (updatedAtStr != null) {
+                        // GitHub API의 날짜 형식(ISO-8601)을 LocalDateTime으로 변환
+                        LocalDateTime updatedAt = LocalDateTime.parse(updatedAtStr.replace("Z", ""));
+                        dto.setGithubUpdatedAt(updatedAt);
+                    }
+
+                    return dto;
+                })
+                .toArray(UserRepoDTO[]::new);
+
+        log.info("repos: {}", userRepoDTOs);
+
+        return userRepoDTOs;
+    }
+
+    /**
      * 내 프로필 정보 가져오기
      * @param accessToken header로 받은 accessToken
      * @return UserResponseDTO
@@ -168,13 +234,13 @@ public class UserService {
 
     /**
      * 내 정보 업데이트
-     * @param acessToken header로 받은 accessToken
+     * @param accessToken header 로 받은 accessToken
      * @param id: 유저 id
      * @param userUpdateDTO: 유저 정보 업데이트 DTO
      * @return UserResponseDTO
      */
-    public UserResponseDTO updateUser(String acessToken, Long id, UserUpdateDTO userUpdateDTO) {
-        TokenInfo tokenInfo = jwtTokenProvider.decodeToken(acessToken);
+    public UserResponseDTO updateUser(String accessToken, Long id, UserUpdateDTO userUpdateDTO) {
+        TokenInfo tokenInfo = jwtTokenProvider.decodeToken(accessToken);
         String githubId = tokenInfo.getGithubId();
 
         // 1. 유저 정보를 가져옵니다.
