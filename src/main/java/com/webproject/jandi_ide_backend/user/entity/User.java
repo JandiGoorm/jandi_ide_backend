@@ -41,6 +41,10 @@ public class User {
     @Column(nullable = false)
     private String nickname;
 
+    // 사용자의 Github username 을 저장
+    @Column(nullable = false)
+    private String githubUsername;
+
     // 사용자의 이메일 주소를 저장 (유일해야 함)
     @Column(nullable = false, unique = true)
     private String email;

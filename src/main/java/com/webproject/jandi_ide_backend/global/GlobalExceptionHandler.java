@@ -1,9 +1,11 @@
 package com.webproject.jandi_ide_backend.global;
 
+import com.webproject.jandi_ide_backend.global.error.CustomException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+
 import java.time.LocalDateTime;
 
 /**
@@ -24,5 +26,17 @@ public class GlobalExceptionHandler {
         );
 
         return new ResponseEntity<>(errorResponse, HttpStatus.BAD_REQUEST);
+    }
+
+    @ExceptionHandler(CustomException.class)
+    public ResponseEntity<ErrorResponseDTO> handleCustomException(CustomException ex){
+        ErrorResponseDTO errorResponse = new ErrorResponseDTO(
+                ex.getCustomErrorCode().getStatusCode().value(),
+                ex.getCustomErrorCode().getErrorCode(),
+                ex.getCustomErrorCode().getMessage(),
+                ex.getCustomErrorCode().getTimestamp()
+        );
+
+        return new ResponseEntity<>(errorResponse, ex.getCustomErrorCode().getStatusCode());
     }
 }
