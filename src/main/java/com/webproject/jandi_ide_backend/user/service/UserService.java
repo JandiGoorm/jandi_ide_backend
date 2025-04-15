@@ -2,6 +2,7 @@ package com.webproject.jandi_ide_backend.user.service;
 
 import com.webproject.jandi_ide_backend.global.error.CustomErrorCodes;
 import com.webproject.jandi_ide_backend.global.error.CustomException;
+import com.webproject.jandi_ide_backend.project.repository.ProjectRepository;
 import com.webproject.jandi_ide_backend.security.JwtTokenProvider;
 import com.webproject.jandi_ide_backend.security.TokenInfo;
 import com.webproject.jandi_ide_backend.user.dto.*;
@@ -16,23 +17,19 @@ import org.springframework.web.client.RestTemplate;
 import lombok.extern.slf4j.Slf4j;
 
 import java.time.LocalDateTime;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.Optional;
-import java.util.Map;
+import java.util.*;
 
 @Slf4j
 @Service
 public class UserService {
     private final JwtTokenProvider jwtTokenProvider;
+    private final UserRepository userRepository;
 
     @Value("${github.client.id}")
     private String githubClientId;
 
     @Value("${github.client.secret}")
     private String githubClientSecret;
-
-    private final UserRepository userRepository;
 
     public UserService(UserRepository userRepository, JwtTokenProvider jwtTokenProvider) {
         this.userRepository = userRepository;
@@ -303,6 +300,7 @@ public class UserService {
         userResponse.setCreatedAt(user.getCreatedAt());
         userResponse.setUpdatedAt(user.getUpdatedAt());
         userResponse.setGithubUsername(user.getGithubUsername());
+
         return userResponse;
     }
 }
