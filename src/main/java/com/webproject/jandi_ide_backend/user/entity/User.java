@@ -41,6 +41,10 @@ public class User {
     @Column(nullable = false)
     private String nickname;
 
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
+    private UserRole role;
+
     // 사용자의 Github username 을 저장
     @Column(nullable = false)
     private String githubUsername;
@@ -58,4 +62,8 @@ public class User {
     @UpdateTimestamp
     @Column(nullable = false)
     private LocalDateTime updatedAt;
+
+    public enum UserRole{
+        ADMIN,USER,STAFF
+    }
 }
