@@ -59,4 +59,60 @@ public class TechStackService {
         // 📦 4. 저장된 결과를 응답 DTO로 포장하여 반환
         return new TechStackResponseDTO(saved.getId(), saved.getName());
     }
+
+    /**
+     * 기존 기술 스택의 이름을 수정하는 메서드
+     * ID를 기준으로 엔티티를 찾아서 이름만 새 값으로 교체함
+     *
+     * @param id 수정할 기술 스택의 고유 ID
+     * @param requestDto 새로운 이름을 담고 있는 요청 객체
+     * @return 수정된 기술 스택 정보를 담은 응답 DTO
+     */
+    @Transactional // 수정 작업도 트랜잭션으로 처리 (중간에 오류 발생 시 백)
+    public TechStackResponseDTO updateTechStack(Integer id, TechStackRequestDTO requestDto) {
+
+        // 🔍 [1단계] ID로 대상 기술 스택 조회 (없으면 예외 발생)
+        TechStack techStack = techStackRepository.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("해당 ID의 기술 스택이 존재하지 않습니다."));
+
+        // 🔍 [2단계] 중복 이름 검사 (단, 자기 자신은 제외해야 함)
+        techStackRepository.findByName(requestDto.getName()).ifPresent(existing -> {
+            if (!existing.getId().equals(id)) {
+                // 다른 엔티티가 이 이름을 이미 쓰고 있다면 예외 처리
+                throw new IllegalArgumentException("이미 존재하는 기술 스택입니다.");
+            }
+        });
+
+        // ✏️ [3단계] 이름 변경
+        techStack.setName(requestDto.getName());
+
+        // 💽 [4단계] 변경된 내용 저장 (JPA의 dirty checking으로 update 쿼리 수행됨)
+        TechStack updated = techStackRepository.save(techStack);
+
+        // 📦 [5단계] 수정된 결과를 응답용 DTO로 포장하여 반환
+        return new TechStackResponseDTO(updated.getId(), updated.getName());
+    }
+
+
+    /**
+     * 기술 스택을 삭제하는 메서드
+     * 주어진 ID에 해당하는 기술 스택이 존재하는지 먼저 확인하고,
+     * 존재할 경우 해당 엔티티를 데이터베이스에서 삭제합니다.
+     *
+     * @param id 삭제할 기술 스택의 고유 ID (기본키)
+     */
+    @Transactional // 메서드 실행 중 예외 발생 시 데이터 변경사항을 모두 롤백하도록 트랜잭션 처리
+    public void deleteTechStack(Integer id) {
+
+        // 🔍 1단계: 삭제 대상 기술 스택이 실제로 DB에 존재하는지 확인
+        // findById(id)는 Optional<TechStack>을 반환하므로,
+        // 값이 없을 경우 orElseThrow()를 통해 예외를 발생시켜 요청을 종료시킴
+        TechStack techStack = techStackRepository.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("해당 ID의 기술 스택이 존재하지 않습니다."));
+
+        // 🗑️ 2단계: 존재하는 기술 스택 객체를 데이터베이스에서 삭제
+        // JPA에서 delete(entity) 메서드는 해당 엔티티를 삭제하는 역할을 수행
+        techStackRepository.delete(techStack);
+    }
+
 }
