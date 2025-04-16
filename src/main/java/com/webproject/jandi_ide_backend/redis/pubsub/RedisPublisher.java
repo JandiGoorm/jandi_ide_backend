@@ -1,40 +1,38 @@
 package com.webproject.jandi_ide_backend.redis.pubsub;
 
+import com.webproject.jandi_ide_backend.chat.dto.ChatMessageDTO;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.redis.core.RedisTemplate;
-import org.springframework.data.redis.listener.ChannelTopic;
 import org.springframework.stereotype.Component;
 
 /**
- * Redis Pub/Sub 시스템에 메시지를 발행(publish)하는 역할을 담당하는 컴포넌트입니다.
- * 특정 채널 토픽으로 메시지를 전송합니다.
- *
- * @RequiredArgsConstructor Lombok 어노테이션을 사용하여 final 필드에 대한 생성자를 자동으로 생성합니다.
- * 이를 통해 RedisTemplate과 ChannelTopic 의존성을 주입받습니다.
+ * Redis Pub/Sub 토픽에 메시지를 발행(publish)하는 컴포넌트입니다.
+ * 채팅 메시지를 받아 적절한 Redis 채널로 전송하는 역할을 합니다.
  */
-@RequiredArgsConstructor
+@Slf4j
 @Component
+@RequiredArgsConstructor
 public class RedisPublisher {
 
-    /**
-     * Redis 데이터 조작 및 메시지 발행에 사용되는 RedisTemplate입니다.
-     * RedisConfig에서 설정된 직렬화 방식을 사용합니다.
-     */
+    // Redis 작업을 위한 RedisTemplate 주입 (RedisConfig에서 설정됨)
     private final RedisTemplate<String, Object> redisTemplate;
-    /**
-     * 메시지를 발행할 Redis 채널(토픽) 정보입니다.
-     * RedisConfig에서 정의된 "chatroom" 토픽 빈이 주입됩니다.
-     */
-    private final ChannelTopic topic;
 
     /**
-     * 주어진 메시지 객체를 Redis의 지정된 토픽으로 발행(publish)합니다.
-     * RedisTemplate은 메시지 객체를 RedisConfig에서 설정된 직렬화 방식(JSON)으로 변환하여 전송합니다.
+     * 지정된 채팅 메시지(ChatMessageDTO)를 해당 채팅방 ID에 맞는 Redis 토픽으로 발행합니다.
      *
-     * @param message 발행할 메시지 객체 (예: ChatMessage 인스턴스)
+     * @param message 발행할 채팅 메시지 객체
      */
-    public void publish(Object message) {
-        // redisTemplate의 convertAndSend 메소드를 사용하여 지정된 토픽(topic.getTopic())으로 메시지를 발행합니다.
-        redisTemplate.convertAndSend(topic.getTopic(), message);
+    public void publish(ChatMessageDTO message) {
+        // 메시지를 발행할 토픽 이름을 동적으로 생성 (예: "CHAT_ROOM:roomId123")
+        String topic = "CHAT_ROOM:" + message.getRoomId();
+
+        // 발행 로그 출력 (어떤 토픽에 어떤 메시지가 발행되는지 확인)
+        log.info("Publishing to topic {}: {}", topic, message);
+
+        // RedisTemplate의 convertAndSend 메소드를 사용하여 메시지 발행
+        // 설정된 직렬화 방식(RedisConfig의 Jackson2JsonRedisSerializer)에 따라
+        // message 객체가 JSON 등으로 변환되어 전송됩니다.
+        redisTemplate.convertAndSend(topic, message);
     }
 }

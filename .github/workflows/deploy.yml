@@ -20,22 +20,61 @@ jobs:
           chmod 600 ~/.ssh/deploy_key
           ssh-keyscan -H ${{ secrets.EC2_HOST }} >> ~/.ssh/known_hosts
 
-      - name: Run deploy script on EC2
+      - name: Run deploy script and verify application status
         run: |
           ssh -i ~/.ssh/deploy_key ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }} << 'EOF'
             cd /home/ubuntu/app
           
-            # GitHub Secrets에서 주입한 값들을 EC2 환경 변수로 설정합니다.
+            # 환경 변수 설정
             export DB_URL="${{ secrets.DB_URL }}"
             export DB_USERNAME="${{ secrets.DB_USERNAME }}"
             export DB_PASSWORD="${{ secrets.DB_PASSWORD }}"
             export GITHUB_CLIENT_ID="${{ secrets.GH_CLIENT_ID }}"
             export GITHUB_CLIENT_SECRET="${{ secrets.GH_CLIENT_SECRET }}"
-            export JWT_SECRET="${{ secrets.JWT_SECRET }}"
-            export REDIS_HOST="${{ secrets.REDIS_HOST }}"
             export REDIS_PW="${{ secrets.REDIS_PW }}"
+            export JWT_SECRET="${{ secrets.JWT_SECRET }}"
           
             git fetch origin main
             git reset --hard origin/main
+          
+            # deploy.sh 실행
             ./deploy.sh
+          
+            # 애플리케이션 시작 대기
+            echo "Waiting for application to start..."
+            max_attempts=30
+            attempt=1
+          
+            while [ $attempt -le $max_attempts ]
+            do
+              echo "Attempt $attempt of $max_attempts..."
+          
+              # 프로세스 확인
+              if pgrep -f "java -jar" > /dev/null
+              then
+                # 헬스 체크 (8080 포트가 다르다면 수정 필요)
+                if curl -s http://localhost:8080/actuator/health | grep -q "UP"
+                then
+                  echo "Application is up and running!"
+          
+                  # 최근 로그 확인
+                  echo "Recent logs:"
+                  tail -n 20 app.log
+          
+                  # 메모리 사용량
+                  echo "Memory usage:"
+                  free -m
+          
+                  exit 0
+                fi
+              fi
+          
+              sleep 10
+              attempt=$((attempt + 1))
+            done
+          
+            echo "Application failed to start properly"
+            echo "Last 50 lines of log:"
+            tail -n 50 app.log
+            exit 1
           EOF
