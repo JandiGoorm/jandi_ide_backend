@@ -1,5 +1,6 @@
 package com.webproject.jandi_ide_backend.user.dto;
 
+import com.webproject.jandi_ide_backend.user.entity.User;
 import lombok.Data;
 
 import java.time.LocalDateTime;
@@ -13,6 +14,8 @@ public class UserResponseDTO {
     private String email;
     private String nickName;
     private String githubUsername;
+    private User.UserRole Role;
+
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
 }

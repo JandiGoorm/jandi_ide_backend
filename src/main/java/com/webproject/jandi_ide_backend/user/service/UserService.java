@@ -324,6 +324,7 @@ public class UserService {
         userResponse.setCreatedAt(user.getCreatedAt());
         userResponse.setUpdatedAt(user.getUpdatedAt());
         userResponse.setGithubUsername(user.getGithubUsername());
+        userResponse.setRole(user.getRole());
 
         return userResponse;
     }
