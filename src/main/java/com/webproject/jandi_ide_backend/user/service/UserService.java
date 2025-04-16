@@ -44,33 +44,48 @@ public class UserService {
      * @return AuthResponseDTO
      */
     public AuthResponseDTO login(AuthRequestDTO authRequestDTO) {
-        String code = authRequestDTO.getCode();
-        String tokenUrl = "https://github.com/login/oauth/access_token";
+        ResponseEntity<Map> response;
+        try{
+            String code = authRequestDTO.getCode();
+            String tokenUrl = "https://github.com/login/oauth/access_token";
 
-        MultiValueMap<String, String> params = new LinkedMultiValueMap<>();
-        params.add("client_id", githubClientId);
-        params.add("client_secret", githubClientSecret);
-        params.add("code", code);
+            MultiValueMap<String, String> params = new LinkedMultiValueMap<>();
+            params.add("client_id", githubClientId);
+            params.add("client_secret", githubClientSecret);
+            params.add("code", code);
 
-        RestTemplate restTemplate = new RestTemplate();
-        HttpHeaders headers = new HttpHeaders();
-        headers.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
+            log.info("code:{}",code);
 
-        ResponseEntity<Map> response = restTemplate.postForEntity(
-                tokenUrl,
-                new HttpEntity<>(params, headers),
-                Map.class
-        );
+            RestTemplate restTemplate = new RestTemplate();
+            HttpHeaders headers = new HttpHeaders();
+            headers.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
 
-        log.info("response:{}",response);
+             response = restTemplate.postForEntity(
+                    tokenUrl,
+                    new HttpEntity<>(params, headers),
+                    Map.class
+            );
+        } catch (Exception e) {
+            log.info("error in access_token:{}",e);
+            throw new CustomException(CustomErrorCodes.GITHUB_API_FAILED);
+        }
+
+
+        log.info("hit response:{}",response);
 
         if (response.getStatusCode().is2xxSuccessful() && response.getBody() != null) {
             Map body = response.getBody();
             String accessToken = (String) body.get("access_token");
+            log.info("accessToken:{}",accessToken);
 
-            UserInfoDTO userInfo = getUserInfo(accessToken);
+            UserInfoDTO userInfo;
+            try{
+                userInfo = getUserInfo(accessToken);
+            } catch (Exception e) {
+                throw new RuntimeException("error getUserInfo" + e);
+            }
+
             String githubId = userInfo.getGithubId();
-
             // 해당 githubId가 DB에 존재하지 않는다면, 저장 해야합니다.
             Optional<User> optionalUser = userRepository.findByGithubId(githubId);
             if(optionalUser.isEmpty()){
@@ -81,11 +96,13 @@ public class UserService {
                 newUser.setNickname(userInfo.getNickname());
                 newUser.setEmail(userInfo.getEmail());
                 newUser.setGithubUsername(userInfo.getNickname());
+                newUser.setRole(User.UserRole.ADMIN);
 
                 try{
                     userRepository.save(newUser);
                 }catch (Exception e){
                     log.error("Error saving user: {}", e.getMessage());
+                    throw new CustomException(CustomErrorCodes.DB_OPERATION_FAILED);
                 }
             }
 
@@ -121,29 +138,36 @@ public class UserService {
      * @return UserInfoDTO
      */
     public UserInfoDTO getUserInfo(String accessToken) {
-        String userInfoUrl = "https://api.github.com/user";
-        RestTemplate restTemplate = new RestTemplate();
-        HttpHeaders headers = new HttpHeaders();
-        headers.setBearerAuth(accessToken);
-        headers.setAccept(Collections.singletonList(MediaType.APPLICATION_JSON));
+        try{
+            String userInfoUrl = "https://api.github.com/user";
 
-        HttpEntity<Void> request = new HttpEntity<>(headers);
+            RestTemplate restTemplate = new RestTemplate();
+            HttpHeaders headers = new HttpHeaders();
+            log.info("accessToken:{}",accessToken);
+            headers.setBearerAuth(accessToken);
+            headers.setAccept(Collections.singletonList(MediaType.APPLICATION_JSON));
 
-        ResponseEntity<Map> response = restTemplate.exchange(
-                userInfoUrl,
-                HttpMethod.GET,
-                request,
-                Map.class
-        );
+            HttpEntity<Void> request = new HttpEntity<>(headers);
 
-        Map<String, Object> userInfoMap = response.getBody();
+            ResponseEntity<Map> response = restTemplate.exchange(
+                    userInfoUrl,
+                    HttpMethod.GET,
+                    request,
+                    Map.class
+            );
 
-        String profileImage = (String) userInfoMap.get("avatar_url");
-        String email = (String) userInfoMap.get("email");
-        String githubId = String.valueOf(userInfoMap.get("id"));
-        String nickname = (String) userInfoMap.get("login");
+            Map<String, Object> userInfoMap = response.getBody();
+            log.info("userInfoMap:{}",userInfoMap);
 
-        return new UserInfoDTO(profileImage, email, githubId, nickname);
+            String profileImage = (String) userInfoMap.get("avatar_url");
+            String email = userInfoMap.get("email") == null ? "null" : (String) userInfoMap.get("email");
+            String githubId = String.valueOf(userInfoMap.get("id"));
+            String nickname = (String) userInfoMap.get("login");
+
+            return new UserInfoDTO(profileImage, email, githubId, nickname);
+        } catch (Exception e) {
+            throw new RuntimeException("Error getUserInfo In" + e);
+        }
     }
 
     /**
