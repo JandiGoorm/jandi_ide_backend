@@ -101,6 +101,8 @@ public class JwtTokenProvider {
                     .parseClaimsJws(token)
                     .getBody();
 
+            log.info("디코딩된 Claims: {}", claims);
+
             String githubId = claims.getSubject();
             String githubToken = claims.get("githubToken", String.class);
 
