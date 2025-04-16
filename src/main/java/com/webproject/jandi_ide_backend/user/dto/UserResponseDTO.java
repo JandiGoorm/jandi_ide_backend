@@ -15,7 +15,4 @@ public class UserResponseDTO {
     private String githubUsername;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
-
-
-    // 기술 스택 , 선호 기업 , 대표 프로젝트는 각 DTO 생성후 추가 해야합니다.
 }

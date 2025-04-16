@@ -3,6 +3,8 @@ package com.webproject.jandi_ide_backend.user.controller;
 
 import com.webproject.jandi_ide_backend.global.error.CustomErrorCodes;
 import com.webproject.jandi_ide_backend.global.error.CustomException;
+import com.webproject.jandi_ide_backend.project.dto.ProjectResponseDTO;
+import com.webproject.jandi_ide_backend.project.service.ProjectService;
 import com.webproject.jandi_ide_backend.user.dto.*;
 import com.webproject.jandi_ide_backend.user.service.UserService;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -17,6 +19,8 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 
+import java.util.List;
+
 
 /**
  * 사용자 관련 API를 처리하는 컨트롤러.
@@ -27,9 +31,11 @@ import io.swagger.v3.oas.annotations.responses.ApiResponses;
 @RequestMapping("/api/users")
 public class UserController {
     private final UserService userService;
+    private final ProjectService projectService;
 
-    public UserController(UserService userService) {
+    public UserController(UserService userService, ProjectService projectService) {
         this.userService = userService;
+        this.projectService = projectService;
     }
 
     @Operation(summary = "깃허브 로그인", description = "GitHub OAuth code 를 이용하여 로그인 후 JWT 토큰을 발급합니다.")
@@ -187,5 +193,33 @@ public class UserController {
 
         // 3) 자신의 레포지토리 반환
         return ResponseEntity.ok(userResponse);
+    }
+
+    @GetMapping("/{id}/projects")
+    @Operation(summary = "특정 유저의 대표 프로젝트 조회", description = "특정 유저의 대표 프로젝트를 조회합니다.")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "조회 성공",
+                    content = @Content(array = @ArraySchema(schema = @Schema(implementation = ProjectResponseDTO.class)))
+            ),
+    })
+    public ResponseEntity<List<ProjectResponseDTO>> getProjects(
+            @Parameter(
+                    name = "Authorization",
+                    description = "액세스 토큰을 입력해주세요",
+                    required = true,
+                    example = "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+            )
+            @RequestHeader("Authorization") String token,
+            @PathVariable int id
+    ) {
+        // 1) 토큰이 없으면 에러
+        if (token == null || token.isBlank() || !token.startsWith("Bearer ")) {
+            throw new CustomException(CustomErrorCodes.INVALID_JWT_TOKEN);
+        }
+
+        // 2) 특정 유저의 대표 프로젝트 조회
+        String accessToken = token.replace("Bearer ", "").trim();
+        List<ProjectResponseDTO> projectResponseDTOList = projectService.getProjects(accessToken, id);
+        return ResponseEntity.ok(projectResponseDTOList);
     }
 }

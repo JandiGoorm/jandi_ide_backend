@@ -29,6 +29,10 @@ public class Project {
     @Column(nullable = false)
     private String name;
 
+    // GitHub 레포지토리 원본 이름 (불변)
+    @Column(nullable = false)
+    private String githubName;
+
     // 프로젝트에 대한 상세 설명을 저장 (긴 텍스트를 저장할 수 있도록 TEXT 타입 사용)
     @Column(columnDefinition = "TEXT")
     private String description;
