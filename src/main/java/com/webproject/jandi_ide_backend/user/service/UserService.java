@@ -88,6 +88,7 @@ public class UserService {
             String githubId = userInfo.getGithubId();
             // 해당 githubId가 DB에 존재하지 않는다면, 저장 해야합니다.
             Optional<User> optionalUser = userRepository.findByGithubId(githubId);
+            User user;
             if(optionalUser.isEmpty()){
                 // 유저가 없다면 DB에 저장합니다.
                 User newUser = new User();
@@ -99,16 +100,34 @@ public class UserService {
                 newUser.setRole(User.UserRole.USER);
 
                 try{
-                    userRepository.save(newUser);
+                    user = userRepository.save(newUser);
                 }catch (Exception e){
                     log.error("Error saving user: {}", e.getMessage());
                     throw new CustomException(CustomErrorCodes.DB_OPERATION_FAILED);
+                }
+            } else {
+                user = optionalUser.get();
+                // 기존 사용자의 role이 null인 경우 USER로 설정합니다
+                if (user.getRole() == null) {
+                    user.setRole(User.UserRole.USER);
+                    userRepository.save(user);
                 }
             }
 
             String jwtAccessToken = jwtTokenProvider.createAccessToken(githubId, accessToken);
             String jwtRefreshToken = jwtTokenProvider.createRefreshToken(githubId, accessToken);
-            return new AuthResponseDTO(jwtAccessToken,jwtRefreshToken);
+            
+            // 토큰과 함께 사용자 정보도 반환
+            AuthResponseDTO authResponse = new AuthResponseDTO(jwtAccessToken, jwtRefreshToken);
+            Map<String, Object> userInfoMap = new HashMap<>();
+            userInfoMap.put("id", user.getId());
+            userInfoMap.put("nickname", user.getNickname());
+            userInfoMap.put("profileImage", user.getProfileImage());
+            userInfoMap.put("email", user.getEmail());
+            userInfoMap.put("role", user.getRole() != null ? user.getRole().name() : "USER");
+            authResponse.setUserInfo(userInfoMap);
+            
+            return authResponse;
         } else {
             throw new CustomException(CustomErrorCodes.GITHUB_LOGIN_FAILED);
         }
