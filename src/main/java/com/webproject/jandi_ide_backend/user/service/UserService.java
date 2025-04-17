@@ -96,7 +96,7 @@ public class UserService {
                 newUser.setNickname(userInfo.getNickname());
                 newUser.setEmail(userInfo.getEmail());
                 newUser.setGithubUsername(userInfo.getNickname());
-                newUser.setRole(User.UserRole.ADMIN);
+                newUser.setRole(User.UserRole.USER);
 
                 try{
                     userRepository.save(newUser);
