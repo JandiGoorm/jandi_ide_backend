@@ -1,44 +1,68 @@
 package com.webproject.jandi_ide_backend.company.entity;
 
-import java.time.LocalDateTime;
+import com.webproject.jandi_ide_backend.jobPosting.entity.JobPosting;
 import jakarta.persistence.*;
-import org.hibernate.annotations.CreationTimestamp;
-import org.hibernate.annotations.UpdateTimestamp;
 import lombok.Getter;
-import lombok.Setter;
 import lombok.NoArgsConstructor;
+import lombok.Setter;
 
-/**
- * 회사 정보를 표현하는 엔티티 클래스
- * 회사 이름은 유니크 제약 조건으로 중복 저장이 불가능하도록 설정
- */
+import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
+
+// 기업 엔티티
 @Entity
-@Table(name = "Company", uniqueConstraints = @UniqueConstraint(columnNames = "name"))
+@Table(name = "companies")
 @Getter
 @Setter
 @NoArgsConstructor
 public class Company {
 
-    // 고유 식별자로 AUTO_INCREMENT를 사용
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Integer id;
+    private Long id;
 
-    // 회사 이름 (반드시 입력되어야 하며, 중복될 수 없음)
-    @Column(nullable = false)
-    private String name;
+    // 기업명
+    @Column(name = "company_name", nullable = false)
+    private String companyName;
 
-    // 회사의 상세 설명을 저장하는 컬럼 (TEXT 타입으로 긴 내용을 저장 가능)
-    @Column(columnDefinition = "TEXT")
+    // 랜덤하게 줄 문제를 난이도로 배열에 저장
+    @ElementCollection
+    @CollectionTable(name = "company_problems", joinColumns = @JoinColumn(name = "company_id"))
+    @Column(name = "levels")
+    private List<Integer> levels = new ArrayList<>();
+
+    // 풀이 시간
+    @Column(name = "time_in_minutes")
+    private Integer timeInMinutes;
+
+    // 해당 기업에서 코테에 사용하는 프로그래밍 언어 배열
+    @ElementCollection
+    @CollectionTable(name = "company_programming_languages", joinColumns = @JoinColumn(name = "company_id"))
+    @Column(name = "language")
+    private List<String> programmingLanguages = new ArrayList<>();
+
+    // 채용 공고와의 관계. 기업과 연결이 끊어진 채용 공고는 자동으로 삭제
+    @OneToMany(mappedBy = "company", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<JobPosting> jobPostings = new ArrayList<>();
+
+    @Column(name = "description")
     private String description;
 
-    // 엔티티 생성 시 자동으로 현재 시각이 기록
-    @CreationTimestamp
-    @Column(nullable = false, updatable = false)
+    @Column(name = "created_at")
     private LocalDateTime createdAt;
 
-    // 엔티티 수정 시 자동으로 현재 시각으로 갱신
-    @UpdateTimestamp
-    @Column(nullable = false)
+    @Column(name = "updated_at")
     private LocalDateTime updatedAt;
+
+    @PrePersist
+    protected void onCreate() {
+        createdAt = LocalDateTime.now();
+        updatedAt = LocalDateTime.now();
+    }
+
+    @PreUpdate
+    protected void onUpdate() {
+        updatedAt = LocalDateTime.now();
+    }
 }
