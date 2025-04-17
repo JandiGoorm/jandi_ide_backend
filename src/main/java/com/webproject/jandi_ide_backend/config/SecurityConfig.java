@@ -71,8 +71,11 @@ public class SecurityConfig {
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration config = new CorsConfiguration();
-        // 허용할 출처 패턴 설정
-        config.setAllowedOriginPatterns(List.of("*"));
+        // 허용할 출처 설정
+        config.setAllowedOrigins(Arrays.asList(
+            "http://localhost:5173",
+            "https://kyj0503.github.io"
+        ));
         // 허용할 HTTP 메서드 설정
         config.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"));
         // 허용할 HTTP 헤더 설정
