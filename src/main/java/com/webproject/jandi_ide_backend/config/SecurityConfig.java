@@ -73,8 +73,7 @@ public class SecurityConfig {
         CorsConfiguration config = new CorsConfiguration();
         // 허용할 출처 설정
         config.setAllowedOrigins(Arrays.asList(
-            "http://localhost:5173",
-            "https://kyj0503.github.io"
+            "http://localhost:5173"
         ));
         // 허용할 HTTP 메서드 설정
         config.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"));
