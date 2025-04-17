@@ -122,16 +122,8 @@ public class UserService {
             String jwtAccessToken = jwtTokenProvider.createAccessToken(githubId, accessToken);
             String jwtRefreshToken = jwtTokenProvider.createRefreshToken(githubId, accessToken);
             
-            // 토큰과 함께 사용자 정보도 반환
+            // 토큰만 반환 (userInfo 제외)
             AuthResponseDTO authResponse = new AuthResponseDTO(jwtAccessToken, jwtRefreshToken);
-            Map<String, Object> userInfoMap = new HashMap<>();
-            userInfoMap.put("id", user.getId());
-            userInfoMap.put("nickname", user.getNickname());
-            userInfoMap.put("profileImage", user.getProfileImage());
-            userInfoMap.put("email", user.getEmail());
-            userInfoMap.put("role", user.getRole() != null ? user.getRole().name() : "USER");
-            authResponse.setUserInfo(userInfoMap);
-            
             return authResponse;
         } else {
             throw new CustomException(CustomErrorCodes.GITHUB_LOGIN_FAILED);
