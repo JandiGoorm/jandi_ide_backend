@@ -28,7 +28,7 @@ public class Company {
 
     // 랜덤하게 줄 문제를 난이도로 배열에 저장
     @ElementCollection
-    @CollectionTable(name = "company_numbers", joinColumns = @JoinColumn(name = "company_id"))
+    @CollectionTable(name = "company_problems", joinColumns = @JoinColumn(name = "company_id"))
     @Column(name = "levels")
     private List<Integer> levels = new ArrayList<>();
 
