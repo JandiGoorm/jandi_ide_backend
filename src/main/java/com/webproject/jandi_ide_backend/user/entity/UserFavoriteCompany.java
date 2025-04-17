@@ -7,7 +7,6 @@ import org.hibernate.annotations.UpdateTimestamp;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.NoArgsConstructor;
-import com.webproject.jandi_ide_backend.company.entity.Company;
 
 /**
  * 유저와 관심 기업 간의 관계를 관리하는 조인 테이블 엔티티

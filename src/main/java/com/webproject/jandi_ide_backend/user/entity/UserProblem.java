@@ -7,7 +7,6 @@ import org.hibernate.annotations.UpdateTimestamp;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.NoArgsConstructor;
-import com.webproject.jandi_ide_backend.algorithm.entity.Problem;
 
 /**
  * 이 엔티티는 사용자가 해결한 문제의 기록을 저장

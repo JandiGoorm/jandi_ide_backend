@@ -7,7 +7,6 @@ import org.hibernate.annotations.UpdateTimestamp;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
-import com.webproject.jandi_ide_backend.algorithm.entity.Problem;
 
 /**
  * 문제집(Basket)과 문제(Problem) 간의 다대다 관계를 관리하는 조인 테이블 엔티티
