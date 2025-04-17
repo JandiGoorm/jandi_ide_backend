@@ -1,6 +1,8 @@
 package com.webproject.jandi_ide_backend.user.entity;
 
 import java.time.LocalDateTime;
+
+import com.webproject.jandi_ide_backend.company.entity.Company;
 import jakarta.persistence.*;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
