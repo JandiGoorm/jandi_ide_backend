@@ -54,19 +54,24 @@ public class UserService {
             params.add("client_secret", githubClientSecret);
             params.add("code", code);
 
-            log.info("code:{}",code);
+            log.info("GitHub 인증 코드: {}, client_id: {}", code, githubClientId.substring(0, 5) + "...");
 
             RestTemplate restTemplate = new RestTemplate();
             HttpHeaders headers = new HttpHeaders();
             headers.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
+            headers.setAccept(Collections.singletonList(MediaType.APPLICATION_JSON));
 
-             response = restTemplate.postForEntity(
+            log.info("GitHub 토큰 요청: {}", tokenUrl);
+            
+            response = restTemplate.postForEntity(
                     tokenUrl,
                     new HttpEntity<>(params, headers),
                     Map.class
             );
+            
+            log.info("GitHub 토큰 응답 상태: {}", response.getStatusCode());
         } catch (Exception e) {
-            log.info("error in access_token:{}",e);
+            log.error("GitHub 토큰 요청 오류: {}", e.getMessage(), e);
             throw new CustomException(CustomErrorCodes.GITHUB_API_FAILED);
         }
 
@@ -168,12 +173,16 @@ public class UserService {
 
             HttpEntity<Void> request = new HttpEntity<>(headers);
 
+            log.info("GitHub API 요청: {}", userInfoUrl);
+            
             ResponseEntity<Map> response = restTemplate.exchange(
                     userInfoUrl,
                     HttpMethod.GET,
                     request,
                     Map.class
             );
+            
+            log.info("GitHub API 응답 상태: {}", response.getStatusCode());
 
             Map<String, Object> userInfoMap = response.getBody();
             log.info("userInfoMap:{}",userInfoMap);
@@ -185,6 +194,7 @@ public class UserService {
 
             return new UserInfoDTO(profileImage, email, githubId, nickname);
         } catch (Exception e) {
+            log.error("GitHub API 사용자 정보 요청 오류: {}", e.getMessage(), e);
             throw new RuntimeException("Error getUserInfo In" + e);
         }
     }
