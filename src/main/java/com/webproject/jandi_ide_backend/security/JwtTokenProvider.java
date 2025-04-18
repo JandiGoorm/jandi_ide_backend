@@ -52,16 +52,8 @@ public class JwtTokenProvider {
      * @return 생성된 액세스 토큰 문자열
      */
     public String createAccessToken(String githubId, String githubToken){
-        log.debug("액세스 토큰 생성 시작: githubId={}", githubId);
-
-        // 1. 깃헙 유저 정보 조회
-        User user =  userRepository.findByGithubId(githubId).orElse(null);
-
-        // 2. 깃헙 유저 정보가 없으면 예외 처리
-        if (user == null) {
-            log.error("사용자를 찾을 수 없음: githubId={}", githubId);
-            throw new CustomException(CustomErrorCodes.USER_NOT_FOUND);
-        }
+        User user = userRepository.findByGithubId(githubId)
+                .orElseThrow(() -> new CustomException(CustomErrorCodes.USER_NOT_FOUND));
 
         Date now = new Date();
         // 15 분으로 설정
@@ -69,11 +61,14 @@ public class JwtTokenProvider {
         Date expiry = new Date(now.getTime() + accessTokenExpiry);
         
         try {
+            // 만약 user.getRole()이 null인 경우 USER 역할 부여
+            String roleName = (user.getRole() != null) ? user.getRole().name() : "USER";
+            
             String token = Jwts.builder()
                     .setSubject(githubId) // 깃헙 아이디를 jwt 의 subject 에 저장
                     .claim("githubToken", githubToken)  // 유저의 깃헙 토큰을 jwt 에 저장
                     .claim("userId", user.getId())  // 사용자 ID 추가
-                    .claim("role", user.getRole().name())  // 사용자 역할 추가
+                    .claim("role", roleName)  // 사용자 역할 추가
                     .setIssuedAt(now) // 토큰 발급 시간
                     .setExpiration(expiry) // 토큰 만료 시간
                     .signWith(secretKey)
@@ -205,7 +200,12 @@ public class JwtTokenProvider {
             // 역할 정보가 있는 경우 (GitHub 로그인)
             else if (claims.get("role") != null) {
                 String role = claims.get("role", String.class);
-                authorities = List.of(new SimpleGrantedAuthority("ROLE_" + role));
+                // 역할 문자열이 비어있거나 null이면 기본 USER 권한 할당
+                if (role == null || role.isEmpty()) {
+                    authorities = List.of(new SimpleGrantedAuthority("ROLE_USER"));
+                } else {
+                    authorities = List.of(new SimpleGrantedAuthority("ROLE_" + role));
+                }
             }
             // 기본 권한
             else {
