@@ -21,6 +21,7 @@ public enum CustomErrorCodes implements CustomErrorCodeInterface {
 
     USER_NOT_FOUND(HttpStatus.NOT_FOUND, "USER_NOT_FOUND", "User not found"), // 유저를 찾을 수 없음
     PROJECT_NOT_FOUND(HttpStatus.NOT_FOUND, "PROJECT_NOT_FOUND", "Project not found"), // 프로젝트를 찾을 수 없음
+    COMPANY_NOT_FOUND(HttpStatus.NOT_FOUND, "COMPANY_NOT_FOUND", "Company not found"), // 회사를 찾을 수 없음
 
     PERMISSION_DENIED(HttpStatus.FORBIDDEN, "PERMISSION_DENIED", "Permission denied"), // 권한 없음
 

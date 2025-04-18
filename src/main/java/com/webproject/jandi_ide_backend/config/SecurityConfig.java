@@ -48,6 +48,10 @@ public class SecurityConfig {
                         .requestMatchers("/chat/**").authenticated()
                         // 나머지 API 요청은 인증 필요
                         .requestMatchers("/api/**").authenticated()
+                        // GET요청은 직위 상관 없이 허용
+                        .requestMatchers(HttpMethod.GET, "/api/companies/**").authenticated()
+                        // POST, PUT, DELETE 요청은 ADMIN 권한 필요
+                        .requestMatchers("/api/companies/**").hasAnyRole("STAFF","ADMIN")
                         // 그 외 모든 요청 허용
                         .anyRequest().permitAll()
                 )
