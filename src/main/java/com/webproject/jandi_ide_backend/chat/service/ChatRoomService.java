@@ -183,4 +183,78 @@ public class ChatRoomService {
             return false;
         }
     }
+
+    /**
+     * 채팅방에 참여자를 추가합니다.
+     *
+     * @param roomId 참여할 채팅방의 ID
+     * @param username 참여하는 사용자 이름
+     * @return 업데이트된 채팅방 정보 객체 (ChatRoom), 없거나 변환 실패 시 null 반환
+     */
+    public ChatRoom addParticipant(String roomId, String username) {
+        log.debug("Attempting to add participant {} to chat room {}", username, roomId);
+        try {
+            // 채팅방 정보 조회
+            ChatRoom room = findRoomById(roomId);
+            if (room == null) {
+                log.warn("Chat room not found for ID: {}", roomId);
+                return null;
+            }
+
+            // 이미 참여중인 경우 그대로 반환
+            if (room.getParticipants().contains(username)) {
+                log.debug("User {} is already a participant in room {}", username, roomId);
+                return room;
+            }
+
+            // 참여자 추가
+            room.getParticipants().add(username);
+            
+            // Redis에 업데이트
+            redisTemplate.opsForHash().put(CHAT_ROOMS_KEY, roomId, room);
+            log.info("Successfully added participant {} to chat room {}", username, roomId);
+            
+            return room;
+        } catch (Exception e) {
+            log.error("Error adding participant {} to chat room {}: {}", username, roomId, e.getMessage(), e);
+            throw new RuntimeException("Error adding participant to chat room", e);
+        }
+    }
+
+    /**
+     * 채팅방에서 참여자를 제거합니다.
+     *
+     * @param roomId 나갈 채팅방의 ID
+     * @param username 나가는 사용자 이름
+     * @return 업데이트된 채팅방 정보 객체 (ChatRoom), 없거나 변환 실패 시 null 반환
+     */
+    public ChatRoom removeParticipant(String roomId, String username) {
+        log.debug("Attempting to remove participant {} from chat room {}", username, roomId);
+        try {
+            // 채팅방 정보 조회
+            ChatRoom room = findRoomById(roomId);
+            if (room == null) {
+                log.warn("Chat room not found for ID: {}", roomId);
+                return null;
+            }
+
+            // 참여하지 않은 경우 그대로 반환
+            if (!room.getParticipants().contains(username)) {
+                log.debug("User {} is not a participant in room {}", username, roomId);
+                return room;
+            }
+
+            // 참여자 제거
+            room.getParticipants().remove(username);
+            
+            // Redis에 업데이트
+            redisTemplate.opsForHash().put(CHAT_ROOMS_KEY, roomId, room);
+            log.info("Successfully removed participant {} from chat room {}", username, roomId);
+            
+            return room;
+        } catch (Exception e) {
+            log.error("Error removing participant {} from chat room {}: {}", username, roomId, e.getMessage(), e);
+            throw new RuntimeException("Error removing participant from chat room", e);
+        }
+    }
 }
