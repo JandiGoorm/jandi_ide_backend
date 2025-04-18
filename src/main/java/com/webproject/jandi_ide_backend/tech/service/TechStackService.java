@@ -14,6 +14,9 @@ import jakarta.transaction.Transactional;
 // 스프링의 서비스 빈으로 등록하는 어노테이션
 import org.springframework.stereotype.Service;
 
+import java.util.List;
+import java.util.stream.Collectors;
+
 /**
  * 기술 스택(TechStack)에 대한 비즈니스 로직을 처리하는 서비스 클래스
  * 컨트롤러로부터 요청을 받아 데이터를 가공하거나, 중복 검사 및 예외 처리 등을 수행하고,
@@ -113,6 +116,27 @@ public class TechStackService {
         // 🗑️ 2단계: 존재하는 기술 스택 객체를 데이터베이스에서 삭제
         // JPA에서 delete(entity) 메서드는 해당 엔티티를 삭제하는 역할을 수행
         techStackRepository.delete(techStack);
+    }
+
+    @Transactional
+    public List<TechStackResponseDTO> getAllTechStacks() {
+        /**
+         * 기술 스택 전체 목록을 조회하는 메서드
+         *
+         * - 데이터베이스에 저장된 모든 기술 스택(TechStack 엔티티)을 조회한 후,
+         * - 클라이언트 응답용 DTO 리스트로 변환하여 반환합니다.
+         *
+         * @return List<TechStackResponseDTO> - ID와 name만 담긴 DTO 리스트
+         */
+
+        // 1. 레포지토리를 통해 모든 기술 스택 엔티티 조회
+        return techStackRepository.findAll().stream()
+
+                // 2. 각 엔티티를 클라이언트 응답용 DTO로 변환 (ID, name만 포함)
+                .map(ts -> new TechStackResponseDTO(ts.getId(), ts.getName()))
+
+                // 3. 스트림을 리스트로 수집하여 반환
+                .collect(Collectors.toList());
     }
 
 }

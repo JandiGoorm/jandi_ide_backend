@@ -14,6 +14,8 @@ import org.springframework.http.ResponseEntity;
 // REST API 컨트롤러로 지정하는 애너테이션 (자동 JSON 변환 포함)
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
+
 /**
  * 기술 스택(TechStack)에 대한 REST API 요청을 처리하는 컨트롤러 클래스
  */
@@ -118,6 +120,28 @@ public class TechStackController {
                     status
             );
         }
+    }
+
+    /**
+     * 전체 기술 스택 목록을 조회하는 API
+     * - HTTP 메서드: GET
+     * - 요청 경로: /api/techstacks
+     * 클라이언트가 이 API를 호출하면 DB에 저장된 모든 기술 스택 목록을 JSON 배열로 반환합니다.
+     * @return HTTP 200 OK 상태와 함께 기술 스택 목록이 담긴 JSON 배열
+     * ✅ 예시 응답:
+     * [
+     *   { "id": 1, "name": "Java" },
+     *   { "id": 2, "name": "Spring Boot" },
+     *   { "id": 3, "name": "Python" }
+     * ]
+     */
+    @GetMapping("/list") // GET /api/techstacks/list
+    public ResponseEntity<List<TechStackResponseDTO>> getAllTechStacks() {
+        // 서비스 계층을 통해 전체 기술 스택 리스트 조회
+        List<TechStackResponseDTO> techStacks = techStackService.getAllTechStacks();
+
+        // HTTP 200 OK 응답으로 리스트 반환
+        return ResponseEntity.ok(techStacks);
     }
 
 }
