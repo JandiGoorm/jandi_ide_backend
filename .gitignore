@@ -36,5 +36,5 @@ out/
 ### VS Code ###
 .vscode/
 
-# resources 폴더 내의 민감 설정파일 무시
-/src/main/resources/application-secret.properties
+application-secret.properties
+application-dev.properties
