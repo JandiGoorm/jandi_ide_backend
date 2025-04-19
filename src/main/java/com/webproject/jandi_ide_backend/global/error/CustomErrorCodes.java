@@ -18,6 +18,7 @@ public enum CustomErrorCodes implements CustomErrorCodeInterface {
     JWT_TOKEN_CREATION_ERROR(HttpStatus.INTERNAL_SERVER_ERROR, "JWT_TOKEN_CREATION_ERROR", "JWT token creation failed"), // JWT 토큰 생성 실패
     GITHUB_LOGIN_FAILED(HttpStatus.BAD_REQUEST, "GITHUB_LOGIN_FAILED", "GitHub login failed"), // 깃헙 로그인 실패
     GITHUB_API_FAILED(HttpStatus.BAD_REQUEST, "GITHUB_API_FAILED", "GitHub API failed"), // 깃헙 API 실패
+    GITHUB_AUTH_EXPIRED(HttpStatus.UNAUTHORIZED, "GITHUB_AUTH_EXPIRED", "GitHub authentication expired or invalid"), // 깃헙 인증 만료 또는 유효하지 않음
 
     USER_NOT_FOUND(HttpStatus.NOT_FOUND, "USER_NOT_FOUND", "User not found"), // 유저를 찾을 수 없음
     PROJECT_NOT_FOUND(HttpStatus.NOT_FOUND, "PROJECT_NOT_FOUND", "Project not found"), // 프로젝트를 찾을 수 없음

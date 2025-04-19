@@ -1,7 +1,9 @@
 package com.webproject.jandi_ide_backend.chat.controller;
 
+import com.webproject.jandi_ide_backend.chat.dto.ChatMessageDTO;
 import com.webproject.jandi_ide_backend.chat.dto.ChatRoomDTO;
 import com.webproject.jandi_ide_backend.chat.entity.ChatRoom;
+import com.webproject.jandi_ide_backend.chat.service.ChatMessageService;
 import com.webproject.jandi_ide_backend.chat.service.ChatRoomService;
 import com.webproject.jandi_ide_backend.global.error.CustomErrorCodes;
 import com.webproject.jandi_ide_backend.global.error.CustomException;
@@ -19,9 +21,15 @@ import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.time.LocalDateTime;
+import java.time.format.DateTimeParseException;
 import java.util.List;
 import java.util.Set;
 
@@ -38,6 +46,7 @@ public class ChatRoomController {
     private final ChatRoomService chatRoomService;
     private final JwtTokenProvider jwtTokenProvider;
     private final UserRepository userRepository;
+    private final ChatMessageService chatMessageService;
 
     /**
      * 새 채팅방을 생성합니다. ADMIN 권한을 가진 사용자만 접근 가능합니다.
@@ -255,5 +264,92 @@ public class ChatRoomController {
         // 사용자 정보 확인
         return userRepository.findByGithubId(tokenInfo.getGithubId())
                 .orElseThrow(() -> new CustomException(CustomErrorCodes.USER_NOT_FOUND));
+    }
+
+    @Operation(summary = "특정 채팅방의 메시지 목록 조회", description = "채팅방 ID로 해당 채팅방의 모든 메시지를 조회합니다.")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "조회 성공"),
+            @ApiResponse(responseCode = "404", description = "채팅방을 찾을 수 없음")
+    })
+    @GetMapping("/rooms/{roomId}/messages")
+    public ResponseEntity<List<ChatMessageDTO>> getRoomMessages(
+            @Parameter(description = "채팅방 ID", required = true) @PathVariable String roomId) {
+        // 채팅방 존재 여부 먼저 확인
+        ChatRoom room = chatRoomService.findRoomById(roomId);
+        if (room == null) {
+            return ResponseEntity.notFound().build();
+        }
+        
+        List<ChatMessageDTO> messages = chatMessageService.getMessagesByRoomId(roomId);
+        return ResponseEntity.ok(messages);
+    }
+
+    @Operation(summary = "채팅방 메시지 페이징 조회", description = "채팅방 ID로 해당 채팅방의 메시지를 페이징 처리하여 조회합니다.")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "조회 성공"),
+            @ApiResponse(responseCode = "404", description = "채팅방을 찾을 수 없음")
+    })
+    @GetMapping("/rooms/{roomId}/messages/paged")
+    public ResponseEntity<Page<ChatMessageDTO>> getRoomMessagesPaged(
+            @Parameter(description = "채팅방 ID", required = true) @PathVariable String roomId,
+            @Parameter(description = "페이지 번호 (0부터 시작)", example = "0") @RequestParam(defaultValue = "0") int page,
+            @Parameter(description = "페이지 크기", example = "20") @RequestParam(defaultValue = "20") int size) {
+        // 채팅방 존재 여부 먼저 확인
+        ChatRoom room = chatRoomService.findRoomById(roomId);
+        if (room == null) {
+            return ResponseEntity.notFound().build();
+        }
+        
+        Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "timestamp"));
+        Page<ChatMessageDTO> messages = chatMessageService.getMessagesByRoomIdPaged(roomId, pageable);
+        return ResponseEntity.ok(messages);
+    }
+
+    @Operation(summary = "특정 시간 이후 채팅 메시지 조회", description = "채팅방 ID와 기준 시간을 입력받아 해당 시간 이후의 메시지를 조회합니다.")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "조회 성공"),
+            @ApiResponse(responseCode = "400", description = "잘못된 요청 (시간 형식 오류 등)"),
+            @ApiResponse(responseCode = "404", description = "채팅방을 찾을 수 없음")
+    })
+    @GetMapping("/rooms/{roomId}/messages/after")
+    public ResponseEntity<?> getRoomMessagesAfterTimestamp(
+            @Parameter(description = "채팅방 ID", required = true) @PathVariable String roomId,
+            @Parameter(description = "기준 시간 (ISO-8601 형식)", example = "2023-08-01T12:00:00", required = true) 
+            @RequestParam String timestamp) {
+        // 채팅방 존재 여부 먼저 확인
+        ChatRoom room = chatRoomService.findRoomById(roomId);
+        if (room == null) {
+            return ResponseEntity.notFound().build();
+        }
+        
+        try {
+            LocalDateTime dateTime = LocalDateTime.parse(timestamp);
+            List<ChatMessageDTO> messages = chatMessageService.getMessagesByRoomIdAfterTimestamp(roomId, dateTime);
+            return ResponseEntity.ok(messages);
+        } catch (DateTimeParseException e) {
+            return ResponseEntity.badRequest().body("Invalid timestamp format. Use ISO-8601 format (yyyy-MM-ddTHH:mm:ss).");
+        }
+    }
+
+    @Operation(summary = "사용자별 메시지 조회", description = "특정 사용자가 보낸 모든 메시지를 조회합니다.")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "조회 성공")
+    })
+    @GetMapping("/messages/user/{sender}")
+    public ResponseEntity<List<ChatMessageDTO>> getUserMessages(
+            @Parameter(description = "메시지 발신자", required = true) @PathVariable String sender) {
+        List<ChatMessageDTO> messages = chatMessageService.getMessagesBySender(sender);
+        return ResponseEntity.ok(messages);
+    }
+
+    @Operation(summary = "메시지 키워드 검색", description = "메시지 내용에 특정 키워드가 포함된 메시지를 검색합니다.")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "검색 성공")
+    })
+    @GetMapping("/messages/search")
+    public ResponseEntity<List<ChatMessageDTO>> searchMessages(
+            @Parameter(description = "검색 키워드", required = true) @RequestParam String keyword) {
+        List<ChatMessageDTO> messages = chatMessageService.searchMessagesByKeyword(keyword);
+        return ResponseEntity.ok(messages);
     }
 }

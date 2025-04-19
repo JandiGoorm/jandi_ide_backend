@@ -33,6 +33,7 @@ jobs:
             export GITHUB_CLIENT_SECRET="${{ secrets.GH_CLIENT_SECRET }}"
             export REDIS_PW="${{ secrets.REDIS_PW }}"
             export JWT_SECRET="${{ secrets.JWT_SECRET }}"
+            export MONGO_DB="${{ secrets.MONGO_DB }}"
           
             git fetch origin main
             git reset --hard origin/main
