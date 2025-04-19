@@ -3,11 +3,15 @@ package com.webproject.jandi_ide_backend.company.dto;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
+import lombok.AllArgsConstructor;
 import lombok.Data;
+import lombok.NoArgsConstructor;
 
 import java.util.List;
 
 @Data
+@NoArgsConstructor
+@AllArgsConstructor
 public class CompanyRequestDTO {
 
     @NotBlank(message = "회사 이름은 필수입니다")
