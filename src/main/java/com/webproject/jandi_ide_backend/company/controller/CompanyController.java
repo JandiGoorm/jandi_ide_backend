@@ -1,8 +1,8 @@
 package com.webproject.jandi_ide_backend.company.controller;
 
-import com.webproject.jandi_ide_backend.company.dto.CompanyCreateRequestDTO;
+import com.webproject.jandi_ide_backend.company.dto.CompanyDetailResponseDTO;
+import com.webproject.jandi_ide_backend.company.dto.CompanyRequestDTO;
 import com.webproject.jandi_ide_backend.company.dto.CompanyResponseDTO;
-import com.webproject.jandi_ide_backend.company.dto.CompanyUpdateRequestDTO;
 import com.webproject.jandi_ide_backend.company.service.CompanyService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -28,7 +28,7 @@ public class CompanyController {
     }
 
     @GetMapping
-    @Operation(summary = "기업 목록 조회", description = "모든 기업의 목록을 조회합니다.")
+    @Operation(summary = "전체 기업 목록 조회", description = "모든 기업의 목록을 조회합니다.")
     @ApiResponses(value = {
             @ApiResponse(
                     responseCode = "200",
@@ -51,6 +51,28 @@ public class CompanyController {
         return ResponseEntity.ok(companies);
     }
 
+    @GetMapping("/{id}")
+    @Operation(summary = "특정 기업 조회", description = "특정 기업의 정보를 조회합니다.")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "조회 성공",
+                    content = @Content(schema = @Schema(implementation = CompanyDetailResponseDTO.class)
+                    )
+            )
+    })
+    public ResponseEntity<CompanyDetailResponseDTO> findCompany(
+            @Parameter(
+                    name = "Authorization",
+                    description = "액세스 토큰을 입력해주세요",
+                    required = true,
+                    example = "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+            )
+            @RequestHeader("Authorization") String token,
+            @PathVariable Integer id
+    ){
+        CompanyDetailResponseDTO company = companyService.findCompanyById(id);
+        return ResponseEntity.ok(company);
+    }
+
     @PostMapping
     @Operation(summary = "기업 추가 (STAFF 이상)", description = "기업을 추가합니다.")
     @ApiResponses(value = {
@@ -66,9 +88,9 @@ public class CompanyController {
                example = "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
        )
        @RequestHeader("Authorization") String token,
-       @RequestBody CompanyCreateRequestDTO companyCreateRequestDTO
+       @RequestBody CompanyRequestDTO companyRequestDTO
     ){
-        return ResponseEntity.ok(companyService.postCompany(companyCreateRequestDTO));
+        return ResponseEntity.ok(companyService.postCompany(companyRequestDTO));
     }
 
     @PutMapping("/{id}")
@@ -87,9 +109,9 @@ public class CompanyController {
             )
             @RequestHeader("Authorization") String token,
             @Parameter(description = "기업 ID", example = "1") @PathVariable Integer id,
-            @RequestBody CompanyUpdateRequestDTO companyUpdateRequestDTO
+            @RequestBody CompanyRequestDTO companyRequestDTO
     ){
-        return ResponseEntity.ok(companyService.updateCompany(companyUpdateRequestDTO, id));
+        return ResponseEntity.ok(companyService.updateCompany(companyRequestDTO, id));
     }
 
     @DeleteMapping("/{id}")
