@@ -18,7 +18,7 @@ public class JobPostingSchedule {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+    private Integer id;
 
     // 일정이 속한 채용 공고
     @ManyToOne(fetch = FetchType.LAZY)

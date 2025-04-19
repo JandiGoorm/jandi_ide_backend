@@ -20,7 +20,7 @@ public class JobPosting {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+    private Integer id;
 
     // 기업명
     @ManyToOne(fetch = FetchType.LAZY)
