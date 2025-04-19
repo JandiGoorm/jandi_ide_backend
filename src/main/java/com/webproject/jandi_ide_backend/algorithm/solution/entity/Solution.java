@@ -1,4 +1,4 @@
-package com.webproject.jandi_ide_backend.algorithm.entity;
+package com.webproject.jandi_ide_backend.algorithm.solution.entity;
 
 import com.webproject.jandi_ide_backend.user.entity.User;
 import jakarta.persistence.*;

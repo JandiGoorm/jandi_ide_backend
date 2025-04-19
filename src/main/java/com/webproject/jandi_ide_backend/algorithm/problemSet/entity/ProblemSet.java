@@ -1,5 +1,6 @@
-package com.webproject.jandi_ide_backend.algorithm.entity;
+package com.webproject.jandi_ide_backend.algorithm.problemSet.entity;
 
+import com.webproject.jandi_ide_backend.user.entity.User;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -38,6 +39,11 @@ public class ProblemSet {
     // 문제집 설명 정보
     @Column(name = "description")
     private String description;
+
+    // 문제집 생성 사용자와의 관계 추가
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "user_id", nullable = false)
+    private User user;
 
     // 문제집 생성 시간
     @Column(name = "created_at")
