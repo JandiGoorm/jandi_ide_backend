@@ -15,6 +15,7 @@ import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
 import org.springframework.web.client.RestTemplate;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.web.client.HttpClientErrorException;
 
 import java.time.LocalDateTime;
 import java.util.*;
@@ -45,7 +46,7 @@ public class UserService {
      */
     public AuthResponseDTO login(AuthRequestDTO authRequestDTO) {
         ResponseEntity<Map> response;
-        try{
+        try {
             String code = authRequestDTO.getCode();
             String tokenUrl = "https://github.com/login/oauth/access_token";
 
@@ -60,6 +61,7 @@ public class UserService {
             HttpHeaders headers = new HttpHeaders();
             headers.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
             headers.setAccept(Collections.singletonList(MediaType.APPLICATION_JSON));
+            headers.set("User-Agent", "JandiIdeBackend");  // GitHub API는 User-Agent 헤더를 요구할 수 있음
 
             log.info("GitHub 토큰 요청: {}", tokenUrl);
             
@@ -70,24 +72,42 @@ public class UserService {
             );
             
             log.info("GitHub 토큰 응답 상태: {}", response.getStatusCode());
+        } catch (HttpClientErrorException e) {
+            log.error("GitHub 토큰 요청 HTTP 오류 (상태 코드: {}): {}", e.getStatusCode(), e.getMessage());
+            throw new CustomException(CustomErrorCodes.GITHUB_LOGIN_FAILED);
         } catch (Exception e) {
             log.error("GitHub 토큰 요청 오류: {}", e.getMessage(), e);
             throw new CustomException(CustomErrorCodes.GITHUB_API_FAILED);
         }
 
-
-        log.info("hit response:{}",response);
+        log.info("GitHub 응답: {}", response);
 
         if (response.getStatusCode().is2xxSuccessful() && response.getBody() != null) {
             Map body = response.getBody();
+            
+            // 에러 응답 확인
+            if (body.containsKey("error")) {
+                log.error("GitHub 토큰 응답에 에러가 포함되어 있습니다: {}", body.get("error"));
+                throw new CustomException(CustomErrorCodes.GITHUB_LOGIN_FAILED);
+            }
+            
             String accessToken = (String) body.get("access_token");
-            log.info("accessToken:{}",accessToken);
+            if (accessToken == null || accessToken.isEmpty()) {
+                log.error("GitHub에서 유효한 액세스 토큰을 받지 못했습니다");
+                throw new CustomException(CustomErrorCodes.GITHUB_LOGIN_FAILED);
+            }
+            
+            log.info("GitHub 액세스 토큰 길이: {}", accessToken.length());
 
             UserInfoDTO userInfo;
-            try{
+            try {
                 userInfo = getUserInfo(accessToken);
+            } catch (CustomException e) {
+                // getUserInfo에서 발생한 CustomException은 그대로 전파
+                throw e;
             } catch (Exception e) {
-                throw new RuntimeException("error getUserInfo" + e);
+                log.error("GitHub 사용자 정보 요청 중 예상치 못한 오류: {}", e.getMessage(), e);
+                throw new CustomException(CustomErrorCodes.GITHUB_API_FAILED);
             }
 
             String githubId = userInfo.getGithubId();
@@ -106,12 +126,14 @@ public class UserService {
 
                 try{
                     user = userRepository.save(newUser);
+                    log.info("새 사용자 등록 완료: {}", user.getNickname());
                 }catch (Exception e){
-                    log.error("Error saving user: {}", e.getMessage());
+                    log.error("사용자 저장 오류: {}", e.getMessage(), e);
                     throw new CustomException(CustomErrorCodes.DB_OPERATION_FAILED);
                 }
             } else {
                 user = optionalUser.get();
+                log.info("기존 사용자 로그인: {}", user.getNickname());
                 // 기존 사용자의 role이 null인 경우 USER로 설정합니다
                 if (user.getRole() == null) {
                     user.setRole(User.UserRole.USER);
@@ -126,6 +148,7 @@ public class UserService {
             AuthResponseDTO authResponse = new AuthResponseDTO(jwtAccessToken, jwtRefreshToken);
             return authResponse;
         } else {
+            log.error("GitHub 응답이 성공이 아니거나 응답 본문이 비었습니다: {}", response.getStatusCode());
             throw new CustomException(CustomErrorCodes.GITHUB_LOGIN_FAILED);
         }
     }
@@ -154,14 +177,17 @@ public class UserService {
      * @return UserInfoDTO
      */
     public UserInfoDTO getUserInfo(String accessToken) {
-        try{
+        try {
             String userInfoUrl = "https://api.github.com/user";
 
             RestTemplate restTemplate = new RestTemplate();
             HttpHeaders headers = new HttpHeaders();
-            log.info("accessToken:{}",accessToken);
+            log.info("액세스 토큰 길이: {}", accessToken != null ? accessToken.length() : 0);
+            
+            // Accept 헤더 추가 (GitHub API v3)
             headers.setBearerAuth(accessToken);
             headers.setAccept(Collections.singletonList(MediaType.APPLICATION_JSON));
+            headers.set("User-Agent", "JandiIdeBackend");  // GitHub API는 User-Agent 헤더를 요구함
 
             HttpEntity<Void> request = new HttpEntity<>(headers);
 
@@ -177,7 +203,7 @@ public class UserService {
             log.info("GitHub API 응답 상태: {}", response.getStatusCode());
 
             Map<String, Object> userInfoMap = response.getBody();
-            log.info("userInfoMap:{}",userInfoMap);
+            log.info("userInfoMap: {}", userInfoMap);
 
             String profileImage = (String) userInfoMap.get("avatar_url");
             String email = userInfoMap.get("email") == null ? "null" : (String) userInfoMap.get("email");
@@ -185,9 +211,15 @@ public class UserService {
             String nickname = (String) userInfoMap.get("login");
 
             return new UserInfoDTO(profileImage, email, githubId, nickname);
+        } catch (HttpClientErrorException.Unauthorized e) {
+            log.error("GitHub API 401 Unauthorized 오류 - 토큰이 만료되었거나 유효하지 않습니다: {}", e.getMessage());
+            throw new CustomException(CustomErrorCodes.GITHUB_AUTH_EXPIRED);
+        } catch (HttpClientErrorException e) {
+            log.error("GitHub API HTTP 오류 (상태 코드: {}): {}", e.getStatusCode(), e.getMessage());
+            throw new CustomException(CustomErrorCodes.GITHUB_API_FAILED);
         } catch (Exception e) {
             log.error("GitHub API 사용자 정보 요청 오류: {}", e.getMessage(), e);
-            throw new RuntimeException("Error getUserInfo In" + e);
+            throw new CustomException(CustomErrorCodes.GITHUB_API_FAILED);
         }
     }
 
@@ -216,15 +248,36 @@ public class UserService {
         HttpHeaders headers = new HttpHeaders();
         headers.setBearerAuth(githubToken);
         headers.setAccept(Collections.singletonList(MediaType.APPLICATION_JSON));
+        headers.set("User-Agent", "JandiIdeBackend");  // GitHub API는 User-Agent 헤더를 요구함
+        
         HttpEntity<Void> request = new HttpEntity<>(headers);
-        ResponseEntity<Map[]> response = restTemplate.exchange(
-                reposUrl,
-                HttpMethod.GET,
-                request,
-                Map[].class
-        );
+        
+        ResponseEntity<Map[]> response;
+        try {
+            log.info("GitHub 레포지토리 정보 요청: {}", reposUrl);
+            response = restTemplate.exchange(
+                    reposUrl,
+                    HttpMethod.GET,
+                    request,
+                    Map[].class
+            );
+            log.info("GitHub 레포지토리 응답 상태: {}", response.getStatusCode());
+        } catch (HttpClientErrorException.Unauthorized e) {
+            log.error("GitHub 레포지토리 요청 401 Unauthorized 오류 - 토큰이 만료되었거나 유효하지 않습니다: {}", e.getMessage());
+            throw new CustomException(CustomErrorCodes.GITHUB_AUTH_EXPIRED);
+        } catch (HttpClientErrorException e) {
+            log.error("GitHub 레포지토리 요청 HTTP 오류 (상태 코드: {}): {}", e.getStatusCode(), e.getMessage());
+            throw new CustomException(CustomErrorCodes.GITHUB_API_FAILED);
+        } catch (Exception e) {
+            log.error("GitHub 레포지토리 요청 중 예상치 못한 오류: {}", e.getMessage(), e);
+            throw new CustomException(CustomErrorCodes.GITHUB_API_FAILED);
+        }
 
         Map[] repos = response.getBody();
+        if (repos == null) {
+            log.warn("GitHub 레포지토리 응답 본문이 비었습니다");
+            return new UserRepoDTO[0];
+        }
 
         // 4. 레포지토리 정보에서 필요한 데이터만 추출하여 DTO로 변환합니다.
         UserRepoDTO[] userRepoDTOs = Arrays.stream(repos)
@@ -250,8 +303,7 @@ public class UserService {
                 })
                 .toArray(UserRepoDTO[]::new);
 
-        log.info("repos: {}", userRepoDTOs);
-
+        log.info("레포지토리 조회 완료: {} 개", userRepoDTOs.length);
         return userRepoDTOs;
     }
 
