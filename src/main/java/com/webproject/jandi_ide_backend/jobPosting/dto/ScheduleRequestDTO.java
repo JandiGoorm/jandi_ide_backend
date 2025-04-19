@@ -1,11 +1,15 @@
 package com.webproject.jandi_ide_backend.jobPosting.dto;
 
 import io.swagger.v3.oas.annotations.media.Schema;
+import lombok.AllArgsConstructor;
 import lombok.Data;
+import lombok.NoArgsConstructor;
 
 import java.time.LocalDate;
 
 @Data
+@NoArgsConstructor
+@AllArgsConstructor
 public class ScheduleRequestDTO {
 
     @Schema(description = "스케쥴의 이름", example = "1차 면접")

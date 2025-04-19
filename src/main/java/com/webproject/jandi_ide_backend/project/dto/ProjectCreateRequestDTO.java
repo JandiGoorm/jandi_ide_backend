@@ -1,12 +1,16 @@
 package com.webproject.jandi_ide_backend.project.dto;
 
 import io.swagger.v3.oas.annotations.media.Schema;
+import lombok.AllArgsConstructor;
 import lombok.Data;
 
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
+import lombok.NoArgsConstructor;
 
 @Data
+@NoArgsConstructor
+@AllArgsConstructor
 @Schema(description = "프로젝트 생성 요청")
 public class ProjectCreateRequestDTO {
     @NotBlank(message = "프로젝트 이름은 필수입니다")

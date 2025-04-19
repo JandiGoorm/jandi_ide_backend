@@ -2,6 +2,7 @@ package com.webproject.jandi_ide_backend.config;
 
 import com.webproject.jandi_ide_backend.security.JwtAuthenticationFilter;
 import com.webproject.jandi_ide_backend.security.JwtTokenProvider;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
@@ -20,6 +21,7 @@ import java.util.List;
 
 @Configuration
 @EnableWebSecurity
+@Slf4j
 public class SecurityConfig {
 
     private final JwtTokenProvider jwtTokenProvider;
