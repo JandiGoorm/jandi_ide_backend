@@ -4,6 +4,9 @@ import com.webproject.jandi_ide_backend.company.dto.CompanyDetailResponseDTO;
 import com.webproject.jandi_ide_backend.company.dto.CompanyRequestDTO;
 import com.webproject.jandi_ide_backend.company.dto.CompanyResponseDTO;
 import com.webproject.jandi_ide_backend.company.service.CompanyService;
+import com.webproject.jandi_ide_backend.jobPosting.dto.PostingRequestDTO;
+import com.webproject.jandi_ide_backend.jobPosting.dto.PostingResponseDTO;
+import com.webproject.jandi_ide_backend.jobPosting.service.JobPostingService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.ArraySchema;
@@ -22,9 +25,11 @@ import java.util.List;
 @RequestMapping("/api/companies")
 public class CompanyController {
     private final CompanyService companyService;
+    private final JobPostingService jobPostingService;
 
-    public CompanyController(CompanyService companyService) {
+    public CompanyController(CompanyService companyService, JobPostingService jobPostingService) {
         this.companyService = companyService;
+        this.jobPostingService = jobPostingService;
     }
 
     @GetMapping
@@ -133,5 +138,27 @@ public class CompanyController {
     ){
         companyService.deleteCompany(id);
         return ResponseEntity.ok("기업 삭제 성공");
+    }
+
+    @PostMapping("/{id}/job-posting")
+    @Operation(summary = "채용 공고 추가 (STAFF 이상)",description="기업의 채용 공고를 추가합니다.")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "추가 성공",
+                    content = @Content(schema = @Schema(implementation = PostingResponseDTO.class))
+            ),
+    })
+    public ResponseEntity<PostingResponseDTO> postJobPosting(
+            @Parameter(
+                    name = "Authorization",
+                    description = "액세스 토큰을 입력해주세요",
+                    required = true,
+                    example = "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+            )
+            @RequestHeader("Authorization") String token,
+            @RequestBody PostingRequestDTO postingRequestDTO,
+            @PathVariable Integer id
+            ) {
+        PostingResponseDTO postingResponseDTO = jobPostingService.postJobPosting(postingRequestDTO,id);
+        return ResponseEntity.ok(postingResponseDTO);
     }
 }

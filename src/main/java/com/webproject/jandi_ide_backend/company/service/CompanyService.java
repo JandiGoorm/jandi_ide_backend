@@ -7,6 +7,12 @@ import com.webproject.jandi_ide_backend.company.entity.Company;
 import com.webproject.jandi_ide_backend.company.repository.CompanyRepository;
 import com.webproject.jandi_ide_backend.global.error.CustomErrorCodes;
 import com.webproject.jandi_ide_backend.global.error.CustomException;
+import com.webproject.jandi_ide_backend.jobPosting.dto.PostingResponseDTO;
+import com.webproject.jandi_ide_backend.jobPosting.dto.ScheduleResponseDTO;
+import com.webproject.jandi_ide_backend.jobPosting.entity.JobPosting;
+import com.webproject.jandi_ide_backend.jobPosting.repository.JobPostingScheduleRepository;
+import com.webproject.jandi_ide_backend.jobPosting.service.JobPostingScheduleService;
+import com.webproject.jandi_ide_backend.jobPosting.service.JobPostingService;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -15,9 +21,11 @@ import java.util.stream.Collectors;
 @Service
 public class CompanyService {
     private final CompanyRepository companyRepository;
+    private final JobPostingScheduleService jobPostingScheduleService;
 
-    public CompanyService(CompanyRepository companyRepository) {
+    public CompanyService(CompanyRepository companyRepository, JobPostingScheduleService jobPostingScheduleService, JobPostingScheduleRepository jobPostingScheduleRepository, JobPostingService jobPostingService) {
         this.companyRepository = companyRepository;
+        this.jobPostingScheduleService = jobPostingScheduleService;
     }
 
     /**
@@ -116,11 +124,33 @@ public class CompanyService {
         responseDTO.setTimeInMinutes(company.getTimeInMinutes());
         responseDTO.setLevels(company.getLevels());
         responseDTO.setProgrammingLanguages(company.getProgrammingLanguages());
-        responseDTO.setJobPostings(company.getJobPostings());
         responseDTO.setCreatedAt(company.getCreatedAt());
         responseDTO.setUpdatedAt(company.getUpdatedAt());
 
+        List<PostingResponseDTO> jobPostingDTOs = company.getJobPostings().stream()
+                .map(this::convertToPostingResponseDTO)
+                .toList();
+
+        responseDTO.setJobPostings(jobPostingDTOs);
+
         return responseDTO;
+    }
+
+    private PostingResponseDTO convertToPostingResponseDTO(JobPosting posting) {
+        PostingResponseDTO dto = new PostingResponseDTO();
+        dto.setId(posting.getId());
+        dto.setTitle(posting.getTitle());
+        dto.setDescription(posting.getDescription());
+        dto.setCreatedAt(posting.getCreatedAt());
+        dto.setUpdatedAt(posting.getUpdatedAt());
+
+        List<ScheduleResponseDTO> scheduleDTOs = posting.getSchedules().stream()
+                .map(jobPostingScheduleService::convertToScheduleResponseDTO)
+                .toList();
+
+        dto.setSchedules(scheduleDTOs);
+
+        return dto;
     }
 
     private CompanyResponseDTO convertToResponseDTO(Company company) {
@@ -136,4 +166,5 @@ public class CompanyService {
 
         return responseDTO;
     }
+
 }
