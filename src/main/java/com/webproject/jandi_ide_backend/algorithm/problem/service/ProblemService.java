@@ -8,7 +8,6 @@ import com.webproject.jandi_ide_backend.global.error.CustomErrorCodes;
 import com.webproject.jandi_ide_backend.global.error.CustomException;
 import org.springframework.stereotype.Service;
 
-import java.util.ArrayList;
 import java.util.List;
 
 @Service
@@ -49,6 +48,8 @@ public class ProblemService {
         problem.setLevel(problemRequestDTO.getLevel());
         problem.setMemory(problemRequestDTO.getMemory());
         problem.setTimeLimit(problemRequestDTO.getTimeLimit());
+
+        problem.getTags().clear();
         problem.getTags().addAll(problemRequestDTO.getTags());
 
         try{
