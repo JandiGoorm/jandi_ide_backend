@@ -29,7 +29,8 @@ public class ProblemController {
 
     @GetMapping
     @Operation(summary = "전체 문제 조회",
-            description = "모든 문제의 목록을 조회합니다.")
+            description = "모든 문제의 목록을 조회합니다.",
+            security = { @SecurityRequirement(name = "Authorization") })
     @ApiResponses(value = {
             @ApiResponse(
                     responseCode = "200",
@@ -39,15 +40,7 @@ public class ProblemController {
                     )
             )
     })
-    public ResponseEntity<List<ProblemResponseDTO>> findAllProblems(
-            @Parameter(
-                    name = "Authorization",
-                    description = "액세스 토큰을 입력해주세요",
-                    required = true,
-                    example = "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
-            )
-            @RequestHeader("Authorization") String token
-    ){
+    public ResponseEntity<List<ProblemResponseDTO>> findAllProblems(){
         List<ProblemResponseDTO> problems = problemService.getProblems();
         return ResponseEntity.ok(problems);
     }
@@ -86,13 +79,6 @@ public class ProblemController {
             )
     })
     public ResponseEntity<ProblemResponseDTO> updateProblem(
-            @Parameter(
-                    name = "Authorization",
-                    description = "액세스 토큰을 입력해주세요",
-                    required = true,
-                    example = "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
-            )
-            @RequestHeader("Authorization") String token,
             @Parameter(description = "문제 ID", example = "1") @PathVariable Integer id,
             @RequestBody ProblemRequestDTO requestDTO
     ){
@@ -114,13 +100,6 @@ public class ProblemController {
             )
     })
     public ResponseEntity<String> deleteProblem(
-            @Parameter(
-                    name = "Authorization",
-                    description = "액세스 토큰을 입력해주세요",
-                    required = true,
-                    example = "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
-            )
-            @RequestHeader("Authorization") String token,
             @Parameter(description = "문제 ID", example = "1") @PathVariable Integer id
     ){
         problemService.deleteProblem(id);

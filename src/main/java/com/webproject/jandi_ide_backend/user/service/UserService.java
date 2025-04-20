@@ -225,11 +225,11 @@ public class UserService {
 
     /**
      * 자신의 깃헙 레포지토리 정보 가져오기
-     * @param accessToken: header 로 받은 accessToken
+     * @param token: header 로 받은 액세스 토큰
      * @param id: 유저 id
      */
-    public UserRepoDTO[] getUserRepos(String accessToken,Long id){
-        TokenInfo tokenInfo = jwtTokenProvider.decodeToken(accessToken);
+    public UserRepoDTO[] getUserRepos(String token,Integer id){
+        TokenInfo tokenInfo = jwtTokenProvider.decodeToken(token.replace("Bearer ", "").trim());
         String githubId = tokenInfo.getGithubId();
         String githubToken = tokenInfo.getGithubToken();
 
@@ -238,7 +238,7 @@ public class UserService {
                 .orElseThrow(() -> new CustomException(CustomErrorCodes.USER_NOT_FOUND));
 
         // 2. 자신의 정보 인지 확인합니다.
-        if (!id.equals(user.getId().longValue())) {
+        if (!id.equals(user.getId())) {
             throw new CustomException(CustomErrorCodes.PERMISSION_DENIED);
         }
 
@@ -309,11 +309,11 @@ public class UserService {
 
     /**
      * 내 프로필 정보 가져오기
-     * @param accessToken header로 받은 accessToken
+     * @param token: header로 받은 accessToken
      * @return UserResponseDTO
      */
-    public UserResponseDTO getMe(String accessToken) {
-        TokenInfo tokenInfo = jwtTokenProvider.decodeToken(accessToken);
+    public UserResponseDTO getMe(String token) {
+        TokenInfo tokenInfo = jwtTokenProvider.decodeToken(token.replace("Bearer ", "").trim());
 
         // 1. accessToken 으로 githubId 만 확인
         String githubId = tokenInfo.getGithubId();
@@ -328,13 +328,13 @@ public class UserService {
 
     /**
      * 내 정보 업데이트
-     * @param accessToken header 로 받은 accessToken
+     * @param token: header 로 받은 accessToken
      * @param id: 유저 id
      * @param userUpdateDTO: 유저 정보 업데이트 DTO
      * @return UserResponseDTO
      */
-    public UserResponseDTO updateUser(String accessToken, Long id, UserUpdateDTO userUpdateDTO) {
-        TokenInfo tokenInfo = jwtTokenProvider.decodeToken(accessToken);
+    public UserResponseDTO updateUser(String token, Integer id, UserUpdateDTO userUpdateDTO) {
+        TokenInfo tokenInfo = jwtTokenProvider.decodeToken(token.replace("Bearer ", "").trim());
         String githubId = tokenInfo.getGithubId();
 
         // 1. 유저 정보를 가져옵니다.
@@ -342,7 +342,7 @@ public class UserService {
                 .orElseThrow(() -> new CustomException(CustomErrorCodes.USER_NOT_FOUND));
 
         // 2. 자신의 정보 인지 확인합니다.
-        if (!id.equals(user.getId().longValue())) {
+        if (!id.equals(user.getId())) {
             throw new CustomException(CustomErrorCodes.PERMISSION_DENIED);
         }
 
@@ -356,7 +356,7 @@ public class UserService {
         try{
             userRepository.save(user);
         }catch (Exception e){
-            log.error("Error saving user: {}", e.getMessage());
+            throw new CustomException(CustomErrorCodes.DB_OPERATION_FAILED);
         }
 
         // 5. DTO 변환
@@ -365,19 +365,15 @@ public class UserService {
 
     /**
      * 특정 유저 정보 가져오기
-     * @param accessToken header로 받은 accessToken
      * @param id: 유저 id
      * @return UserResponseDTO
      */
-    public UserResponseDTO getUser(String accessToken, Long id) {
-        // 1. accessToken 을 검증합니다.
-        jwtTokenProvider.decodeToken(accessToken);
-
-        // 2. 해당 id의 유저 정보를 가져옵니다.
+    public UserResponseDTO getUser(Integer id) {
+        // 1. 해당 id의 유저 정보를 가져옵니다.
         User user = userRepository.findById(id)
                 .orElseThrow(() -> new CustomException(CustomErrorCodes.USER_NOT_FOUND));
 
-        // 3. DTO 변환
+        // 2. DTO 변환
         return convertToDto(user);
     }
 
