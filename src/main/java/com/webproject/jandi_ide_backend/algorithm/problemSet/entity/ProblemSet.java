@@ -1,5 +1,6 @@
 package com.webproject.jandi_ide_backend.algorithm.problemSet.entity;
 
+import com.webproject.jandi_ide_backend.company.entity.Company;
 import com.webproject.jandi_ide_backend.user.entity.User;
 import jakarta.persistence.*;
 import lombok.Getter;
@@ -29,6 +30,10 @@ public class ProblemSet {
     // 기출 문제집 여부 (true: 기출, false: 사용자 생성)
     @Column(name = "is_previous", nullable = false)
     private Boolean isPrevious;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "company")
+    private Company company;
 
     // 문제집에 포함된 문제 ID 목록
     @ElementCollection
