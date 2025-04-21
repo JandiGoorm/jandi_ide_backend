@@ -97,7 +97,7 @@ public class CompilerService {
         List<ResultDto> results = compileAndRun(problem, testCases, submissionDto.getCode(), submissionDto.getLanguage());
         
         // 4. 결과 분석
-        boolean isAllPass = results.stream().allMatch(result -> result.getStatus() == ResultStatus.PASS);
+        boolean isAllPass = results.stream().allMatch(result -> result.getStatus() == ResultStatus.CORRECT);
         
         // 5. 최대 실행 시간과 메모리 사용량 계산
         Double maxExecutionTime = results.stream()
@@ -573,8 +573,9 @@ public class CompilerService {
      */
     private boolean hasCompilationError(List<ResultDto> results) {
         return results.stream().anyMatch(result -> 
-                result.getStatus() == ResultStatus.ERROR && 
-                result.getActualResult().contains("ERROR"));
+                result.getStatus() == ResultStatus.COMPILATION_ERROR || 
+                (result.getStatus() == ResultStatus.RUNTIME_ERROR && 
+                 result.getActualResult().contains("ERROR")));
     }
     
     /**
@@ -585,7 +586,7 @@ public class CompilerService {
      */
     private boolean hasRuntimeError(List<ResultDto> results) {
         return results.stream().anyMatch(result -> 
-                result.getStatus() == ResultStatus.ERROR && 
+                result.getStatus() == ResultStatus.RUNTIME_ERROR && 
                 !result.getActualResult().contains("메모리 초과") && 
                 !result.getActualResult().contains("시간 초과"));
     }
@@ -620,7 +621,8 @@ public class CompilerService {
      */
     private String getErrorDetails(List<ResultDto> results) {
         return results.stream()
-                .filter(result -> result.getStatus() == ResultStatus.ERROR)
+                .filter(result -> result.getStatus() == ResultStatus.RUNTIME_ERROR || 
+                                  result.getStatus() == ResultStatus.COMPILATION_ERROR)
                 .map(ResultDto::getActualResult)
                 .collect(Collectors.joining("\n"));
     }
@@ -635,7 +637,7 @@ public class CompilerService {
         StringBuilder details = new StringBuilder();
         
         for (ResultDto result : results) {
-            if (result.getStatus() == ResultStatus.FAIL) {
+            if (result.getStatus() == ResultStatus.WRONG_ANSWER) {
                 details.append("테스트 케이스 ").append(result.getTestNum()).append(":\n")
                       .append("- 기대 출력: ").append(result.getExpectedResult()).append("\n")
                       .append("- 실제 출력: ").append(result.getActualResult()).append("\n");
