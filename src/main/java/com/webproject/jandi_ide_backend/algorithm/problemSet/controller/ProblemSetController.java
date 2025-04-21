@@ -6,6 +6,7 @@ import com.webproject.jandi_ide_backend.global.error.CustomErrorCodes;
 import com.webproject.jandi_ide_backend.global.error.CustomException;
 import com.webproject.jandi_ide_backend.security.JwtTokenProvider;
 import com.webproject.jandi_ide_backend.security.TokenInfo;
+import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
@@ -24,12 +25,26 @@ public class ProblemSetController {
             @RequestHeader("Authorization") String token,
             @RequestBody PostReqProblemSetDTO probSetDTO
     ) {
-        // 토큰에서 유저 정보 추출
+        String githubId = getGithubIdFromToken(token);
+        return problemSetService.createProblemSet(probSetDTO, githubId);
+    }
+
+    @GetMapping("")
+    public Object readProblemSet(
+            @RequestHeader("Authorization") String token
+    ) {
+        String githubId = getGithubIdFromToken(token);
+        return problemSetService.readProblemSet(githubId);
+    }
+
+    private String getGithubIdFromToken(String token) {
+        // accessToken 얻기
         if (token == null || token.isBlank() || !token.startsWith("Bearer "))
             throw new CustomException(CustomErrorCodes.INVALID_JWT_TOKEN);
         String accessToken = token.replace("Bearer ", "").trim();
-        TokenInfo tokenInfo = jwtTokenProvider.decodeToken(accessToken);
 
-        return problemSetService.createProblemSet(probSetDTO, tokenInfo.getGithubId());
+        // 토큰 디코딩 및 깃헙 아이디 추출
+        TokenInfo tokenInfo = jwtTokenProvider.decodeToken(accessToken);
+        return tokenInfo.getGithubId();
     }
 }

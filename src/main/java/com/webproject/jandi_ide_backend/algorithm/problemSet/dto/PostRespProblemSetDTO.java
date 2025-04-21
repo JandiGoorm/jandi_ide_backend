@@ -24,4 +24,8 @@ public class PostRespProblemSetDTO {
         this.company = (problemSet.getCompany() == null) ?
                 "" : problemSet.getCompany().getCompanyName();
     }
+
+    public static PostRespProblemSetDTO fromEntity(ProblemSet problemSet) {
+        return new PostRespProblemSetDTO(problemSet);
+    }
 }

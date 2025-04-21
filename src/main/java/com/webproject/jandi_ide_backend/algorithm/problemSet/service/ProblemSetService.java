@@ -12,6 +12,7 @@ import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
 import java.time.ZoneId;
+import java.util.List;
 
 @Service
 public class ProblemSetService {
@@ -44,9 +45,24 @@ public class ProblemSetService {
             }
         }
 
+        // 데이터베이스에 문제 추가 및 반환
         ProblemSet problemSet = createNewData(probSetDTO, user, company);
         return new PostRespProblemSetDTO(problemSet);
     }
+
+    /// read
+    public List<PostRespProblemSetDTO> readProblemSet(String githubId) {
+        // 유저 검증
+        User user = userRepository.findByGithubId(githubId)
+                .orElseThrow(() -> new RuntimeException("유저가 없습니다."));
+
+        // 문제집 조회
+        List<ProblemSet> problemSetList = problemSetRepository.findAllByUser(user);
+        return problemSetList.stream()
+                .map(PostRespProblemSetDTO::fromEntity)
+                .toList();
+    }
+
 
     // 데이터베이스에 추가
     public ProblemSet createNewData(PostReqProblemSetDTO probSetDTO, User user, Company company) {
