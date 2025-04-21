@@ -22,6 +22,10 @@ public class ProblemSet {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    // 문제집 제목
+    @Column(name = "title", nullable = false)
+    private String title;
+
     // 기출 문제집 여부 (true: 기출, false: 사용자 생성)
     @Column(name = "is_previous", nullable = false)
     private Boolean isPrevious;
