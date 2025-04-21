@@ -77,14 +77,10 @@ public class SecurityConfig {
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration config = new CorsConfiguration();
-        // 허용할 출처 설정
-        config.setAllowedOrigins(Arrays.asList(
-            "http://localhost:5173",
-            // 프론트엔드가 배포된 URL 추가
-            "https://your-frontend-domain.com",
-            // 개발 중인 경우 와일드카드 허용 (보안상 주의 필요)
-            "*"
-        ));
+        
+        // 모든 출처 허용 (실제 운영 환경에서는 구체적인 도메인으로 제한해야 함)
+        config.addAllowedOriginPattern("*");
+        
         // 허용할 HTTP 메서드 설정
         config.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"));
         // 허용할 HTTP 헤더 설정

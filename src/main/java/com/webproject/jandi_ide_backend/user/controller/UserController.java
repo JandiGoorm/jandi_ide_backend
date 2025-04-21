@@ -9,6 +9,7 @@ import com.webproject.jandi_ide_backend.user.dto.*;
 import com.webproject.jandi_ide_backend.user.service.UserService;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.ArraySchema;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -61,31 +62,14 @@ public class UserController {
     }
 
     @GetMapping("/me")
-    @Operation(summary = "내 정보 조회", description = "내 정보를 조회합니다.")
+    @Operation(summary = "내 정보 조회", description = "내 정보를 조회합니다.", security = { @SecurityRequirement(name = "Authorization") })
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "조회 성공",
                     content = @Content(schema = @Schema(implementation = UserResponseDTO.class))
             ),
     })
-    public ResponseEntity<UserResponseDTO> getMe(
-            @Parameter(
-                name = "Authorization",
-                description = "액세스 토큰을 입력해주세요",
-                required = true,
-                example = "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
-            )
-            @RequestHeader("Authorization") String token) {
-        // 1) 토큰이 없으면 에러
-        if (token == null || token.isBlank() || !token.startsWith("Bearer ")) {
-            throw new CustomException(CustomErrorCodes.INVALID_JWT_TOKEN);
-        }
-
-        // 2) 사용자 정보 조회
-        UserResponseDTO userProfile;
-        String accessToken = token.replace("Bearer ", "").trim();
-        userProfile = userService.getMe(accessToken);
-
-        // 3) 사용자 정보 반환
+    public ResponseEntity<UserResponseDTO> getMe(@Parameter(hidden = true) @RequestHeader("Authorization") String token) {
+        UserResponseDTO userProfile = userService.getMe(token);
         return ResponseEntity.ok(userProfile);
     }
 
@@ -108,118 +92,59 @@ public class UserController {
     }
 
     @PutMapping("/{id}")
-    @Operation(summary = "내 정보 수정", description = "내 정보를 수정합니다.")
+    @Operation(summary = "내 정보 수정", description = "내 정보를 수정합니다.", security = { @SecurityRequirement(name = "Authorization") })
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "수정 성공",
                     content = @Content(schema = @Schema(implementation = UserResponseDTO.class))
             ),
     })
     public ResponseEntity<UserResponseDTO> updateUser(
-            @Parameter(
-                name = "Authorization",
-                description = "액세스 토큰을 입력해주세요",
-                required = true,
-                example = "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
-            )
-            @RequestHeader("Authorization") String token,
-            @PathVariable Long id,
+            @Parameter(hidden = true) @RequestHeader("Authorization") String token,
+            @PathVariable Integer id,
             @RequestBody UserUpdateDTO userUpdateDTO) {
-        // 1) 토큰이 없으면 에러
-        if (token == null || token.isBlank() || !token.startsWith("Bearer ")) {
-            throw new CustomException(CustomErrorCodes.INVALID_JWT_TOKEN);
-        }
-
-        // 2) 사용자 정보 수정
-        String accessToken = token.replace("Bearer ", "").trim();
-        UserResponseDTO userResponse = userService.updateUser(accessToken, id, userUpdateDTO);
-
-        // 3) 수정된 사용자 정보 반환
+        UserResponseDTO userResponse = userService.updateUser(token, id, userUpdateDTO);
         return ResponseEntity.ok(userResponse);
     }
 
     @GetMapping("/{id}")
-    @Operation(summary = "특정 사용자 정보 조회", description = "특정 사용자의 정보를 조회합니다.")
+    @Operation(summary = "특정 사용자 정보 조회", description = "특정 사용자의 정보를 조회합니다.", security = { @SecurityRequirement(name = "Authorization") })
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "조회 성공",
                     content = @Content(schema = @Schema(implementation = UserResponseDTO.class))
             ),
     })
     public ResponseEntity<UserResponseDTO> getUser(
-            @Parameter(
-                name = "Authorization",
-                description = "액세스 토큰을 입력해주세요",
-                required = true,
-                example = "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
-            )
-            @RequestHeader("Authorization") String token,
-            @PathVariable Long id) {
-        // 1) 토큰이 없으면 에러
-        if (token == null || token.isBlank() || !token.startsWith("Bearer ")) {
-            throw new CustomException(CustomErrorCodes.INVALID_JWT_TOKEN);
-        }
-
-        // 2) 특정 사용자 정보 조회
-        String accessToken = token.replace("Bearer ", "").trim();
-        UserResponseDTO userResponse = userService.getUser(accessToken, id);
-
-        // 3) 특정 사용자 정보 반환
+            @PathVariable Integer id) {
+        UserResponseDTO userResponse = userService.getUser(id);
         return ResponseEntity.ok(userResponse);
     }
 
     @GetMapping("/{id}/repos")
-    @Operation(summary = "자신의 깃헙 레포지토리 조회", description = "자신의 레포지토리를 조회합니다.")
+    @Operation(summary = "자신의 깃헙 레포지토리 조회", description = "자신의 레포지토리를 조회합니다.", security = { @SecurityRequirement(name = "Authorization") })
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "조회 성공",
                     content = @Content(array = @ArraySchema(schema = @Schema(implementation = UserRepoDTO.class)))
             ),
     })
     public ResponseEntity<UserRepoDTO[]> getMyRepos(
-            @Parameter(
-                name = "Authorization",
-                description = "액세스 토큰을 입력해주세요",
-                required = true,
-                example = "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
-            )
-            @RequestHeader("Authorization") String token,
-            @PathVariable Long id) {
-        // 1) 토큰이 없으면 에러
-        if (token == null || token.isBlank() || !token.startsWith("Bearer ")) {
-            throw new CustomException(CustomErrorCodes.INVALID_JWT_TOKEN);
-        }
-
-        // 2) 자신의 레포지토리 조회
-        String accessToken = token.replace("Bearer ", "").trim();
-        UserRepoDTO[] userResponse = userService.getUserRepos(accessToken, id);
-
-        // 3) 자신의 레포지토리 반환
+            @Parameter(hidden = true) @RequestHeader("Authorization") String token,
+            @PathVariable Integer id) {
+        UserRepoDTO[] userResponse = userService.getUserRepos(token, id);
         return ResponseEntity.ok(userResponse);
     }
 
     @GetMapping("/{id}/projects")
-    @Operation(summary = "특정 유저의 대표 프로젝트 조회", description = "특정 유저의 대표 프로젝트를 조회합니다.")
+    @Operation(summary = "특정 유저의 대표 프로젝트 조회", description = "특정 유저의 대표 프로젝트를 조회합니다.", security = { @SecurityRequirement(name = "Authorization") })
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "조회 성공",
                     content = @Content(array = @ArraySchema(schema = @Schema(implementation = ProjectResponseDTO.class)))
             ),
     })
     public ResponseEntity<List<ProjectResponseDTO>> getProjects(
-            @Parameter(
-                    name = "Authorization",
-                    description = "액세스 토큰을 입력해주세요",
-                    required = true,
-                    example = "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
-            )
-            @RequestHeader("Authorization") String token,
-            @PathVariable int id
+            @Parameter(hidden = true) @RequestHeader("Authorization") String token,
+            @PathVariable Integer id
     ) {
-        // 1) 토큰이 없으면 에러
-        if (token == null || token.isBlank() || !token.startsWith("Bearer ")) {
-            throw new CustomException(CustomErrorCodes.INVALID_JWT_TOKEN);
-        }
-
-        // 2) 특정 유저의 대표 프로젝트 조회
-        String accessToken = token.replace("Bearer ", "").trim();
-        List<ProjectResponseDTO> projectResponseDTOList = projectService.getProjects(accessToken, id);
+        List<ProjectResponseDTO> projectResponseDTOList = projectService.getProjects(token, id);
         return ResponseEntity.ok(projectResponseDTOList);
     }
 }

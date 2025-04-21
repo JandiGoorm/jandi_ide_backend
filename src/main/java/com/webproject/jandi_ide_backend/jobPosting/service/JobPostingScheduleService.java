@@ -2,6 +2,7 @@ package com.webproject.jandi_ide_backend.jobPosting.service;
 
 import com.webproject.jandi_ide_backend.global.error.CustomErrorCodes;
 import com.webproject.jandi_ide_backend.global.error.CustomException;
+import com.webproject.jandi_ide_backend.jobPosting.dto.PostingResponseDTO;
 import com.webproject.jandi_ide_backend.jobPosting.dto.ScheduleRequestDTO;
 import com.webproject.jandi_ide_backend.jobPosting.dto.ScheduleResponseDTO;
 import com.webproject.jandi_ide_backend.jobPosting.entity.JobPosting;
@@ -9,6 +10,12 @@ import com.webproject.jandi_ide_backend.jobPosting.entity.JobPostingSchedule;
 import com.webproject.jandi_ide_backend.jobPosting.repository.JobPostingRepository;
 import com.webproject.jandi_ide_backend.jobPosting.repository.JobPostingScheduleRepository;
 import org.springframework.stereotype.Service;
+
+import java.time.LocalDate;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 @Service
 public class JobPostingScheduleService {
@@ -41,7 +48,7 @@ public class JobPostingScheduleService {
             throw new CustomException(CustomErrorCodes.DB_OPERATION_FAILED);
         }
 
-        return convertToDTO(jobPostingSchedule);
+        return convertToScheduleResponseDTO(jobPostingSchedule);
     }
 
     /**
@@ -63,7 +70,7 @@ public class JobPostingScheduleService {
             throw new CustomException(CustomErrorCodes.DB_OPERATION_FAILED);
         }
 
-        return convertToDTO(jobPostingSchedule);
+        return convertToScheduleResponseDTO(jobPostingSchedule);
     }
 
     /**
@@ -80,16 +87,37 @@ public class JobPostingScheduleService {
         }
     }
 
-    private ScheduleResponseDTO convertToDTO(JobPostingSchedule jobPostingSchedule){
-        ScheduleResponseDTO scheduleResponseDTO = new ScheduleResponseDTO();
-        scheduleResponseDTO.setId(jobPostingSchedule.getId());
-        scheduleResponseDTO.setScheduleName(jobPostingSchedule.getScheduleName());
-        scheduleResponseDTO.setDescription(jobPostingSchedule.getDescription());
-        scheduleResponseDTO.setDate(jobPostingSchedule.getDate());
-        scheduleResponseDTO.setUpdatedAt(jobPostingSchedule.getUpdatedAt());
-        scheduleResponseDTO.setCreatedAt(jobPostingSchedule.getCreatedAt());
+    public List<PostingResponseDTO> getSchedulesByYearAndMonth(Integer year, Integer month){
+        LocalDate startDate = LocalDate.of(year, month, 1);
+        LocalDate endDate = startDate.plusMonths(1).minusDays(1);
 
-        return scheduleResponseDTO;
+        // 해당 년도와 월에 속하는 모든 스케줄 조회
+        List<JobPostingSchedule> schedules = jobPostingScheduleRepository.findByDateBetweenOrderByDateAsc(startDate, endDate);
+
+        // 채용공고 ID 별로 그룹화
+        Map<JobPosting, List<JobPostingSchedule>> schedulesByPosting = schedules.stream()
+                .collect(Collectors.groupingBy(JobPostingSchedule::getJobPosting));
+
+        List<PostingResponseDTO> result = new ArrayList<>();
+
+        schedulesByPosting.forEach((jobPosting, postingSchedules) -> {
+            PostingResponseDTO postingDTO = new PostingResponseDTO();
+            postingDTO.setId(jobPosting.getId());
+            postingDTO.setTitle(jobPosting.getTitle());
+            postingDTO.setDescription(jobPosting.getDescription());
+            postingDTO.setCreatedAt(jobPosting.getCreatedAt());
+            postingDTO.setUpdatedAt(jobPosting.getUpdatedAt());
+
+            // 스케줄 DTO 변환
+            List<ScheduleResponseDTO> scheduleResponseDTOs = postingSchedules.stream()
+                    .map(this::convertToScheduleResponseDTO)
+                    .collect(Collectors.toList());
+
+            postingDTO.setSchedules(scheduleResponseDTOs);
+            result.add(postingDTO);
+        });
+
+        return result;
     }
 
     public ScheduleResponseDTO convertToScheduleResponseDTO(JobPostingSchedule schedule){

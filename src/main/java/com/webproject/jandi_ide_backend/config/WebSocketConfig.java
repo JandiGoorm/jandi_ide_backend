@@ -32,20 +32,14 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
 
     @Override
     public void configureMessageBroker(MessageBrokerRegistry config) {
-        config.enableSimpleBroker("/topic");
+        config.enableSimpleBroker("/topic", "/queue");
         config.setApplicationDestinationPrefixes("/app");
     }
 
     @Override
     public void registerStompEndpoints(StompEndpointRegistry registry) {
-        registry.addEndpoint("/ws/chat")
-                .setAllowedOrigins(
-                    "http://localhost:5173",
-                    // 프론트엔드가 배포된 URL 추가
-                    "https://your-frontend-domain.com",
-                    // 개발 중인 경우 와일드카드 허용 (보안상 주의 필요)
-                    "*"
-                )
+        registry.addEndpoint("/ws")
+                .setAllowedOriginPatterns("*")
                 .withSockJS();
     }
 

@@ -185,7 +185,11 @@ public class JwtTokenProvider {
                     .getBody();
 
             Collection<? extends GrantedAuthority> authorities;
-            
+
+            if("refresh".equals(claims.get("tokenType"))){
+                throw new CustomException(CustomErrorCodes.INVALID_JWT_TOKEN);
+            }
+
             // 권한 정보가 있는 경우
             if (claims.get("auth") != null) {
                 try {
