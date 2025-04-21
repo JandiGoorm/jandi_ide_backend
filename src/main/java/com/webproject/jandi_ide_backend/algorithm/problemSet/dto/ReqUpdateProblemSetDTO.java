@@ -6,7 +6,7 @@ import lombok.NonNull;
 
 @Getter
 @NoArgsConstructor(force = true)
-public class UpdateReqProblemSetDTO {
+public class ReqUpdateProblemSetDTO {
     @NonNull
     private final String title;
 }

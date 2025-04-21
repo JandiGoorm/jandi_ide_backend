@@ -2,9 +2,9 @@ package com.webproject.jandi_ide_backend.algorithm.problemSet.service;
 
 import com.webproject.jandi_ide_backend.algorithm.problem.repository.ProblemRepository;
 import com.webproject.jandi_ide_backend.algorithm.problemSet.Repository.ProblemSetRepository;
-import com.webproject.jandi_ide_backend.algorithm.problemSet.dto.PostReqProblemSetDTO;
-import com.webproject.jandi_ide_backend.algorithm.problemSet.dto.PostRespProblemSetDTO;
-import com.webproject.jandi_ide_backend.algorithm.problemSet.dto.UpdateReqProblemSetDTO;
+import com.webproject.jandi_ide_backend.algorithm.problemSet.dto.ReqPostProblemSetDTO;
+import com.webproject.jandi_ide_backend.algorithm.problemSet.dto.RespProblemSetDTO;
+import com.webproject.jandi_ide_backend.algorithm.problemSet.dto.ReqUpdateProblemSetDTO;
 import com.webproject.jandi_ide_backend.algorithm.problemSet.entity.ProblemSet;
 import com.webproject.jandi_ide_backend.company.entity.Company;
 import com.webproject.jandi_ide_backend.company.repository.CompanyRepository;
@@ -13,7 +13,6 @@ import com.webproject.jandi_ide_backend.user.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
-import org.springframework.web.bind.annotation.RequestParam;
 
 import java.time.LocalDateTime;
 import java.time.ZoneId;
@@ -30,7 +29,7 @@ public class ProblemSetService {
     private final CompanyRepository companyRepository;
 
     /// API
-    public Object createProblemSet(PostReqProblemSetDTO probSetDTO, String githubId) {
+    public Object createProblemSet(ReqPostProblemSetDTO probSetDTO, String githubId) {
         // 유저 검증
         User user = userRepository.findByGithubId(githubId)
                 .orElseThrow(() -> new RuntimeException("유저가 존재하지 않습니다."));
@@ -49,10 +48,10 @@ public class ProblemSetService {
 
         // 데이터베이스에 문제 추가 및 반환
         ProblemSet problemSet = createData(probSetDTO, user, company, problemIds);
-        return new PostRespProblemSetDTO(problemSet);
+        return new RespProblemSetDTO(problemSet);
     }
 
-    public List<PostRespProblemSetDTO> readProblemSet(String githubId) {
+    public List<RespProblemSetDTO> readProblemSet(String githubId) {
         // 유저 검증
         User user = userRepository.findByGithubId(githubId)
                 .orElseThrow(() -> new RuntimeException("유저가 존재하지 않습니다."));
@@ -60,11 +59,11 @@ public class ProblemSetService {
         // 문제집 조회
         List<ProblemSet> problemSetList = problemSetRepository.findAllByUser(user);
         return problemSetList.stream()
-                .map(PostRespProblemSetDTO::fromEntity)
+                .map(RespProblemSetDTO::fromEntity)
                 .toList();
     }
 
-    public Object updateProblemSet(Long problemSetId, UpdateReqProblemSetDTO probSetDTO, String githubId) {
+    public Object updateProblemSet(Long problemSetId, ReqUpdateProblemSetDTO probSetDTO, String githubId) {
         // 유저 검증
         User user = userRepository.findByGithubId(githubId)
                 .orElseThrow(() -> new RuntimeException("유저가 존재하지 않습니다."));
@@ -76,7 +75,7 @@ public class ProblemSetService {
 
         // 이름 변경 및 반환
         ProblemSet problemSet = updateData(problemSetId, user, probSetDTO.getTitle());
-        return new PostRespProblemSetDTO(problemSet);
+        return new RespProblemSetDTO(problemSet);
     }
 
     public Boolean deleteProblemSet(Long problemSetId, String githubId) {
@@ -136,7 +135,7 @@ public class ProblemSetService {
 
     /// 실제 DB CRUD
     // 데이터베이스에 추가
-    private ProblemSet createData(PostReqProblemSetDTO probSetDTO, User user, Company company, List<Integer> problemIds) {
+    private ProblemSet createData(ReqPostProblemSetDTO probSetDTO, User user, Company company, List<Integer> problemIds) {
         ProblemSet problemSet = new ProblemSet();
         problemSet.setTitle(probSetDTO.getTitle());
         problemSet.setIsPrevious(probSetDTO.getIsCompanyProb());

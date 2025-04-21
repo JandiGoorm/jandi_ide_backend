@@ -3,13 +3,12 @@ package com.webproject.jandi_ide_backend.algorithm.problemSet.dto;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.NonNull;
-import lombok.RequiredArgsConstructor;
 
 import java.util.List;
 
 @Getter
 @NoArgsConstructor(force = true)
-public class PostReqProblemSetDTO {
+public class ReqPostProblemSetDTO {
     //필수
     @NonNull
     private final Boolean isCompanyProb;

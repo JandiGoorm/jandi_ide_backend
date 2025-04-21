@@ -1,13 +1,12 @@
 package com.webproject.jandi_ide_backend.algorithm.problemSet.controller;
 
-import com.webproject.jandi_ide_backend.algorithm.problemSet.dto.PostReqProblemSetDTO;
-import com.webproject.jandi_ide_backend.algorithm.problemSet.dto.UpdateReqProblemSetDTO;
+import com.webproject.jandi_ide_backend.algorithm.problemSet.dto.ReqPostProblemSetDTO;
+import com.webproject.jandi_ide_backend.algorithm.problemSet.dto.ReqUpdateProblemSetDTO;
 import com.webproject.jandi_ide_backend.algorithm.problemSet.service.ProblemSetService;
 import com.webproject.jandi_ide_backend.global.error.CustomErrorCodes;
 import com.webproject.jandi_ide_backend.global.error.CustomException;
 import com.webproject.jandi_ide_backend.security.JwtTokenProvider;
 import com.webproject.jandi_ide_backend.security.TokenInfo;
-import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -26,7 +25,7 @@ public class ProblemSetController {
     @PostMapping("")
     public Object createProblemSet(
             @RequestHeader("Authorization") String token,
-            @RequestBody PostReqProblemSetDTO probSetDTO
+            @RequestBody ReqPostProblemSetDTO probSetDTO
     ) {
         String githubId = getGithubIdFromToken(token);
         return problemSetService.createProblemSet(probSetDTO, githubId);
@@ -46,7 +45,7 @@ public class ProblemSetController {
     public Object updateProblemSet(
             @RequestHeader("Authorization") String token,
             @PathVariable Long problemSetId,
-            @RequestBody UpdateReqProblemSetDTO probSetDTO
+            @RequestBody ReqUpdateProblemSetDTO probSetDTO
             ) {
         String githubId = getGithubIdFromToken(token);
         return problemSetService.updateProblemSet(problemSetId, probSetDTO, githubId);

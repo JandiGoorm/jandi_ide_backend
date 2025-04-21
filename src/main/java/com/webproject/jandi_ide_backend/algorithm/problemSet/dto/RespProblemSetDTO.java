@@ -1,13 +1,12 @@
 package com.webproject.jandi_ide_backend.algorithm.problemSet.dto;
 
 import com.webproject.jandi_ide_backend.algorithm.problemSet.entity.ProblemSet;
-import com.webproject.jandi_ide_backend.company.entity.Company;
 import lombok.Data;
 
 import java.util.List;
 
 @Data
-public class PostRespProblemSetDTO {
+public class RespProblemSetDTO {
     private final Long id;
     private final Boolean isCompanyProb;
     private final List<Integer> problemIds;
@@ -15,7 +14,7 @@ public class PostRespProblemSetDTO {
     private final String title;
     private final String company;
 
-    public PostRespProblemSetDTO(ProblemSet problemSet) {
+    public RespProblemSetDTO(ProblemSet problemSet) {
         this.id = problemSet.getId();
         this.isCompanyProb = problemSet.getIsPrevious();
         this.problemIds = problemSet.getProblems();
@@ -25,7 +24,7 @@ public class PostRespProblemSetDTO {
                 "" : problemSet.getCompany().getCompanyName();
     }
 
-    public static PostRespProblemSetDTO fromEntity(ProblemSet problemSet) {
-        return new PostRespProblemSetDTO(problemSet);
+    public static RespProblemSetDTO fromEntity(ProblemSet problemSet) {
+        return new RespProblemSetDTO(problemSet);
     }
 }
