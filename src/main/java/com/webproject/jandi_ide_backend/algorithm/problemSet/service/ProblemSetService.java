@@ -29,21 +29,21 @@ public class ProblemSetService {
     private final UserRepository userRepository;
     private final CompanyRepository companyRepository;
 
-    /// create
+    /// API
     public Object createProblemSet(PostReqProblemSetDTO probSetDTO, String githubId) {
         // 유저 검증
         User user = userRepository.findByGithubId(githubId)
                 .orElseThrow(() -> new RuntimeException("유저가 존재하지 않습니다."));
 
-        Company company = null;
-        List<Integer> problemIds = null;
-        if(probSetDTO.getIsCompanyProb()){
-            // 만약 기업 문제집인 경우 기업 정보 연결, 랜덤 문제 지정
+        // 문제집 유형에 따라 company, problemIds 매칭
+        Company company;
+        List<Integer> problemIds;
+        if(probSetDTO.getIsCompanyProb()){ // 기업 문제집인 경우
             company = getCompanyByName(probSetDTO.getCompanyName());
             problemIds = setRandProblems(company);
         }
-        else{
-            // 만약 커스텀 문제집인 경우 사용자 지정 문제 불러오기
+        else{ // 커스텀 문제집인 경우
+            company = null;
             problemIds = getCustomProblems(probSetDTO.getProblemIds());
         }
 
@@ -52,7 +52,6 @@ public class ProblemSetService {
         return new PostRespProblemSetDTO(problemSet);
     }
 
-    /// read
     public List<PostRespProblemSetDTO> readProblemSet(String githubId) {
         // 유저 검증
         User user = userRepository.findByGithubId(githubId)
@@ -64,8 +63,7 @@ public class ProblemSetService {
                 .map(PostRespProblemSetDTO::fromEntity)
                 .toList();
     }
-    
-    /// upate
+
     public Object updateProblemSet(Long problemSetId, UpdateReqProblemSetDTO probSetDTO, String githubId) {
         // 유저 검증
         User user = userRepository.findByGithubId(githubId)
@@ -81,7 +79,6 @@ public class ProblemSetService {
         return new PostRespProblemSetDTO(problemSet);
     }
 
-    /// delete
     public Boolean deleteProblemSet(Long problemSetId, String githubId) {
         // 유저 검증
         User user = userRepository.findByGithubId(githubId)
@@ -92,6 +89,7 @@ public class ProblemSetService {
         return problemSetRepository.findById(problemSetId).isEmpty(); // 없으면 정상 삭제로 간주
     }
 
+    /// 함수 분리
     // 기업 문제집 - 기업 가져오기
     private Company getCompanyByName(String companyName) {
         if(companyName == null){
