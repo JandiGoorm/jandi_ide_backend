@@ -1,6 +1,7 @@
 package com.webproject.jandi_ide_backend.algorithm.problemSet.controller;
 
 import com.webproject.jandi_ide_backend.algorithm.problemSet.dto.PostReqProblemSetDTO;
+import com.webproject.jandi_ide_backend.algorithm.problemSet.dto.UpdateReqProblemSetDTO;
 import com.webproject.jandi_ide_backend.algorithm.problemSet.service.ProblemSetService;
 import com.webproject.jandi_ide_backend.global.error.CustomErrorCodes;
 import com.webproject.jandi_ide_backend.global.error.CustomException;
@@ -20,6 +21,7 @@ public class ProblemSetController {
         this.jwtTokenProvider = jwtTokenProvider;
     }
 
+    /// create
     @PostMapping("")
     public Object createProblemSet(
             @RequestHeader("Authorization") String token,
@@ -29,12 +31,24 @@ public class ProblemSetController {
         return problemSetService.createProblemSet(probSetDTO, githubId);
     }
 
+    /// read
     @GetMapping("")
     public Object readProblemSet(
             @RequestHeader("Authorization") String token
     ) {
         String githubId = getGithubIdFromToken(token);
         return problemSetService.readProblemSet(githubId);
+    }
+
+    /// update
+    @PutMapping("{problemSetId}")
+    public Object updateProblemSet(
+            @RequestHeader("Authorization") String token,
+            @PathVariable Long problemSetId,
+            @RequestBody UpdateReqProblemSetDTO probSetDTO
+            ) {
+        String githubId = getGithubIdFromToken(token);
+        return problemSetService.updateProblemSet(problemSetId, probSetDTO, githubId);
     }
 
     private String getGithubIdFromToken(String token) {
