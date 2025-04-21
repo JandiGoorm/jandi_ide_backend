@@ -6,8 +6,8 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 import java.time.LocalDateTime;
-import java.util.HashSet;
-import java.util.Set;
+import java.util.ArrayList;
+import java.util.List;
 
 @Entity
 @Table(name = "problems")
@@ -37,7 +37,7 @@ public class Problem {
             joinColumns = @JoinColumn(name = "problem_id")
     )
     @Column(name = "tag_name")
-    private Set<String> tags = new HashSet<>();
+    private List<String> tags = new ArrayList<>();
 
     @Column(name = "created_at")
     private LocalDateTime createdAt;
