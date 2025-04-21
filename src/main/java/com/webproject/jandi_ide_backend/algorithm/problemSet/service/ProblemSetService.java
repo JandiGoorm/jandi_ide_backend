@@ -1,5 +1,6 @@
 package com.webproject.jandi_ide_backend.algorithm.problemSet.service;
 
+import com.webproject.jandi_ide_backend.algorithm.problem.repository.ProblemRepository;
 import com.webproject.jandi_ide_backend.algorithm.problemSet.Repository.ProblemSetRepository;
 import com.webproject.jandi_ide_backend.algorithm.problemSet.dto.PostReqProblemSetDTO;
 import com.webproject.jandi_ide_backend.algorithm.problemSet.dto.PostRespProblemSetDTO;
@@ -9,23 +10,24 @@ import com.webproject.jandi_ide_backend.company.entity.Company;
 import com.webproject.jandi_ide_backend.company.repository.CompanyRepository;
 import com.webproject.jandi_ide_backend.user.entity.User;
 import com.webproject.jandi_ide_backend.user.repository.UserRepository;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
+import org.springframework.web.bind.annotation.RequestParam;
 
 import java.time.LocalDateTime;
 import java.time.ZoneId;
+import java.util.ArrayList;
 import java.util.List;
 
+@Slf4j
 @Service
+@RequiredArgsConstructor
 public class ProblemSetService {
     private final ProblemSetRepository problemSetRepository;
+    private final ProblemRepository problemRepository;
     private final UserRepository userRepository;
     private final CompanyRepository companyRepository;
-
-    public ProblemSetService(ProblemSetRepository problemSetRepository, UserRepository userRepository, CompanyRepository companyRepository) {
-        this.problemSetRepository = problemSetRepository;
-        this.userRepository = userRepository;
-        this.companyRepository = companyRepository;
-    }
 
     /// create
     public Object createProblemSet(PostReqProblemSetDTO probSetDTO, String githubId) {
@@ -33,21 +35,20 @@ public class ProblemSetService {
         User user = userRepository.findByGithubId(githubId)
                 .orElseThrow(() -> new RuntimeException("유저가 존재하지 않습니다."));
 
-        // 만약 기업 문제인 경우 기업 확인
         Company company = null;
+        List<Integer> problemIds = null;
         if(probSetDTO.getIsCompanyProb()){
-            String companyName = probSetDTO.getCompanyName();
-            if(companyName == null){
-                throw new RuntimeException("기업 문제인 경우 기업을 선택해야 합니다.");
-            }
-            company = (Company) companyRepository.findByCompanyName(companyName).orElse(null);
-            if(company == null){
-                throw new RuntimeException("존재하지 않는 기업을 선택했습니다.");
-            }
+            // 만약 기업 문제집인 경우 기업 정보 연결, 랜덤 문제 지정
+            company = getCompanyByName(probSetDTO.getCompanyName());
+            problemIds = setRandProblems(company);
+        }
+        else{
+            // 만약 커스텀 문제집인 경우 사용자 지정 문제 불러오기
+            problemIds = getCustomProblems(probSetDTO.getProblemIds());
         }
 
         // 데이터베이스에 문제 추가 및 반환
-        ProblemSet problemSet = createData(probSetDTO, user, company);
+        ProblemSet problemSet = createData(probSetDTO, user, company, problemIds);
         return new PostRespProblemSetDTO(problemSet);
     }
 
@@ -91,12 +92,57 @@ public class ProblemSetService {
         return problemSetRepository.findById(problemSetId).isEmpty(); // 없으면 정상 삭제로 간주
     }
 
+    // 기업 문제집 - 기업 가져오기
+    private Company getCompanyByName(String companyName) {
+        if(companyName == null){
+            throw new RuntimeException("기업 문제인 경우 기업을 선택해야 합니다.");
+        }
+        Company company = (Company) companyRepository.findByCompanyName(companyName).orElse(null);
+        if(company == null){
+            throw new RuntimeException("존재하지 않는 기업을 선택했습니다.");
+        }
+        return company;
+    }
+
+    // 기업 문제집 - 랜덤 지정 문제 로드
+    private List<Integer> setRandProblems(Company company) {
+        List<Integer> problemIds = new ArrayList<>();
+        problemIds.add(1);
+        problemIds.add(2);
+
+        return problemIds;
+    }
+
+    // 커스텀 문제집 - 사용자 지정 문제 로드
+    private List<Integer> getCustomProblems(List<Integer> problemIds) {
+        // 사용자가 선택한 문제가 없다면 에러 처리
+        if(problemIds == null){
+            throw new RuntimeException("선택된 문제가 없습니다.");
+        }
+
+        // 존재하는 문제만 선별
+        List<Integer> customProblems = new ArrayList<>();
+        for (Integer problemId : problemIds) {
+            if (problemRepository.findById(problemId).isPresent()) {
+                log.info("{} 존재", problemId);
+                customProblems.add(problemId);
+            }else{
+                log.info("{} 미존재", problemId);
+            }
+        }
+        if(customProblems.isEmpty()) // 선택된 문제는 있었으나 잘못된 문제뿐이었던 경우 에러 반환
+            throw new RuntimeException("잘못된 문제를 선택하셨습니다.");
+
+        return customProblems;
+    }
+
+    /// 실제 DB CRUD
     // 데이터베이스에 추가
-    private ProblemSet createData(PostReqProblemSetDTO probSetDTO, User user, Company company) {
+    private ProblemSet createData(PostReqProblemSetDTO probSetDTO, User user, Company company, List<Integer> problemIds) {
         ProblemSet problemSet = new ProblemSet();
         problemSet.setTitle(probSetDTO.getTitle());
         problemSet.setIsPrevious(probSetDTO.getIsCompanyProb());
-        problemSet.setProblems(probSetDTO.getProblemIds());
+        problemSet.setProblems(problemIds);
         problemSet.setSolvingTimeInMinutes(probSetDTO.getMinutes());
         problemSet.setUser(user);
         problemSet.setCompany(company);
