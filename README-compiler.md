@@ -36,7 +36,7 @@ POST /api/compiler/submit
 | 필드 | 타입 | 필수 | 설명 |
 |------|------|------|------|
 | userId | Long | O | 코드를 제출한 사용자의 ID |
-| problemId | Integer | O | 풀이한 문제의 ID |
+| problemId | Integer | O | 풀이한 문제의 ID (특별히 0을 입력하면 테스트 모드로 동작) |
 | code | String | O | 제출한 코드 내용 |
 | language | String | O | 프로그래밍 언어 (java, python, c++) |
 | solvingTime | Integer | X | 문제 풀이에 소요된 시간 (초 단위) |
@@ -119,6 +119,57 @@ POST /api/compiler/submit
 3. **C++**
    - `language` 필드에 "c++" 사용
    - C++11 표준 지원
+
+## 테스트 모드 (problemId=0)
+
+요청 시 `problemId`를 0으로 설정하면 테스트 모드가 활성화됩니다. 테스트 모드에서는:
+
+1. 문제 존재 여부를 확인하지 않습니다.
+2. 테스트 케이스를 실행하지 않습니다.
+3. 코드가 컴파일되고 간단한 입력("10 20")으로 실행 가능한지만 확인합니다.
+4. 결과에는 컴파일 및 실행 여부와 실행 결과가 포함됩니다.
+
+이 모드는 사용자가 코드가 기본적으로 동작하는지 빠르게 확인하고 싶을 때 유용합니다.
+
+### 테스트 모드 요청 예제
+
+```
+POST /api/compiler/submit
+Content-Type: application/json
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+
+{
+  "userId": 1,
+  "problemId": 0,
+  "code": "public class Main {\n  public static void main(String[] args) {\n    System.out.println(\"Hello, World!\");\n  }\n}",
+  "language": "java",
+  "solvingTime": 0
+}
+```
+
+### 테스트 모드 응답 예제
+
+```json
+{
+  "id": 42,
+  "user": {
+    "id": 1,
+    "nickname": "user1",
+    "email": "user1@example.com"
+  },
+  "problemId": 0,
+  "code": "public class Main {\n  public static void main(String[] args) {\n    System.out.println(\"Hello, World!\");\n  }\n}",
+  "language": "java",
+  "solvingTime": 0,
+  "isCorrect": true,
+  "additionalInfo": "실행 결과: Hello, World!\n",
+  "status": "CORRECT",
+  "memoryUsage": 0,
+  "executionTime": 0,
+  "createdAt": "2023-08-15T15:45:12",
+  "updatedAt": "2023-08-15T15:45:12"
+}
+```
 
 ## 예제
 
