@@ -6,17 +6,16 @@ import com.webproject.jandi_ide_backend.algorithm.problem.entity.Problem;
 import com.webproject.jandi_ide_backend.algorithm.problem.repository.ProblemRepository;
 import com.webproject.jandi_ide_backend.global.error.CustomErrorCodes;
 import com.webproject.jandi_ide_backend.global.error.CustomException;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
+import java.util.Optional;
 
 @Service
+@RequiredArgsConstructor
 public class ProblemService {
     private final ProblemRepository problemRepository;
-
-    public ProblemService(ProblemRepository problemRepository) {
-        this.problemRepository = problemRepository;
-    }
 
     public List<ProblemResponseDTO> getProblems() {
         return problemRepository.findAll().stream()
@@ -83,5 +82,24 @@ public class ProblemService {
         problemResponseDTO.setUpdatedAt(problem.getUpdatedAt());
 
         return problemResponseDTO;
+    }
+
+    /**
+     * 모든 문제를 조회합니다.
+     * @return 문제 목록
+     */
+    public List<Problem> getAllProblems() {
+        return problemRepository.findAll();
+    }
+    
+    /**
+     * ID로 문제를 조회합니다.
+     * @param id 조회할 문제의 ID
+     * @return 문제 객체
+     * @throws RuntimeException 문제를 찾을 수 없는 경우
+     */
+    public Problem getProblemById(Integer id) {
+        return problemRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Problem not found with id: " + id));
     }
 }
