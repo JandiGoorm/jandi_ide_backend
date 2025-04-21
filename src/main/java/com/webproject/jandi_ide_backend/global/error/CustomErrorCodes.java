@@ -28,6 +28,8 @@ public enum CustomErrorCodes implements CustomErrorCodeInterface {
     TESTCASE_NOT_FOUND(HttpStatus.NOT_FOUND, "TESTCASE_NOT_FOUND", "Testcase not found"),
 
     PERMISSION_DENIED(HttpStatus.FORBIDDEN, "PERMISSION_DENIED", "Permission denied"), // 권한 없음
+    INVALID_PAGE(HttpStatus.BAD_REQUEST, "INVALID_PAGE", "Invalid page"), // 유효하지 않은 페이지
+
 
 
     // 500번대 에러
