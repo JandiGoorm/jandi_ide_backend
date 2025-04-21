@@ -125,6 +125,17 @@ public class ProblemService {
         }
     }
 
+    /**
+     * ID로 문제를 조회합니다.
+     * @param id 조회할 문제의 ID
+     * @return 문제 객체
+     * @throws RuntimeException 문제를 찾을 수 없는 경우
+     */
+    public Problem getProblemById(Integer id) {
+        return problemRepository.findById(id)
+                .orElseThrow(() -> new CustomException(CustomErrorCodes.PROBLEM_NOT_FOUND));
+    }
+
     private ProblemResponseDTO convertToProblemResponseDTO(Problem problem) {
         ProblemResponseDTO problemResponseDTO = new ProblemResponseDTO();
         problemResponseDTO.setId(problem.getId());

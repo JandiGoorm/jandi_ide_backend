@@ -16,12 +16,14 @@ import org.springframework.util.MultiValueMap;
 import org.springframework.web.client.RestTemplate;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.client.HttpClientErrorException;
+import lombok.RequiredArgsConstructor;
 
 import java.time.LocalDateTime;
 import java.util.*;
 
 @Slf4j
 @Service
+@RequiredArgsConstructor
 public class UserService {
     private final JwtTokenProvider jwtTokenProvider;
     private final UserRepository userRepository;
@@ -31,12 +33,6 @@ public class UserService {
 
     @Value("${github.client.secret}")
     private String githubClientSecret;
-
-    public UserService(UserRepository userRepository, JwtTokenProvider jwtTokenProvider) {
-        this.userRepository = userRepository;
-        this.jwtTokenProvider = jwtTokenProvider;
-    }
-
 
     /**
      * 깃헙 로그인 시, 액세스 토큰을 발급받고, 사용자 정보를 가져옵니다.
@@ -396,5 +392,16 @@ public class UserService {
         userResponse.setRole(user.getRole());
 
         return userResponse;
+    }
+
+    /**
+     * 사용자 ID로 사용자를 조회합니다.
+     * @param id 조회할 사용자의 ID
+     * @return 사용자 객체
+     * @throws RuntimeException 사용자를 찾을 수 없는 경우
+     */
+    public User getUserById(Long id) {
+        return userRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("User not found with id: " + id));
     }
 }
