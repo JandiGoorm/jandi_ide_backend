@@ -80,9 +80,19 @@ public class ProblemSetService {
         return new PostRespProblemSetDTO(problemSet);
     }
 
+    /// delete
+    public Boolean deleteProblemSet(Long problemSetId, String githubId) {
+        // 유저 검증
+        User user = userRepository.findByGithubId(githubId)
+                .orElseThrow(() -> new RuntimeException("유저가 존재하지 않습니다."));
+
+        // 문제집 삭제 및 성공 여부 반환
+        deleteData(problemSetId, user);
+        return problemSetRepository.findById(problemSetId).isEmpty(); // 없으면 정상 삭제로 간주
+    }
 
     // 데이터베이스에 추가
-    public ProblemSet createData(PostReqProblemSetDTO probSetDTO, User user, Company company) {
+    private ProblemSet createData(PostReqProblemSetDTO probSetDTO, User user, Company company) {
         ProblemSet problemSet = new ProblemSet();
         problemSet.setTitle(probSetDTO.getTitle());
         problemSet.setIsPrevious(probSetDTO.getIsCompanyProb());
@@ -96,7 +106,8 @@ public class ProblemSetService {
         return problemSet;
     }
 
-    public ProblemSet updateData(Long problemSetId, User user, String newTitle) {
+    // 데이터베이스 수정
+    private ProblemSet updateData(Long problemSetId, User user, String newTitle) {
         // 문제집 검증
         ProblemSet problemSet = problemSetRepository.findById(problemSetId)
                 .orElseThrow(() -> new RuntimeException("문제집이 존재하지 않습니다."));
@@ -111,5 +122,20 @@ public class ProblemSetService {
         problemSet.setUpdatedAt(LocalDateTime.now(ZoneId.of("Asia/Seoul")));
         problemSetRepository.save(problemSet);
         return problemSet;
+    }
+
+    // 데이터베이스에서 삭제
+    private void deleteData(Long problemSetId, User user) {
+        // 문제집 검증
+        ProblemSet problemSet = problemSetRepository.findById(problemSetId)
+                .orElseThrow(() -> new RuntimeException("문제집이 존재하지 않습니다."));
+
+        // 본인의 문제집이 아니라면 에러 반환
+        if(!problemSet.getUser().equals(user)){
+            throw new RuntimeException("본인만 삭제할 수 있습니다");
+        }
+
+        // 문제집 삭제
+        problemSetRepository.delete(problemSet);
     }
 }

@@ -8,6 +8,7 @@ import com.webproject.jandi_ide_backend.global.error.CustomException;
 import com.webproject.jandi_ide_backend.security.JwtTokenProvider;
 import com.webproject.jandi_ide_backend.security.TokenInfo;
 import jakarta.servlet.http.HttpServletRequest;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
@@ -49,6 +50,18 @@ public class ProblemSetController {
             ) {
         String githubId = getGithubIdFromToken(token);
         return problemSetService.updateProblemSet(problemSetId, probSetDTO, githubId);
+    }
+
+    /// delete
+    @DeleteMapping("{problemSetId}")
+    public ResponseEntity<?> deleteProblemSet(
+            @RequestHeader("Authorization") String token,
+            @PathVariable Long problemSetId
+    ) {
+        String githubId = getGithubIdFromToken(token);
+        if (!problemSetService.deleteProblemSet(problemSetId, githubId))
+            throw new RuntimeException("알수없는 이유로 삭제에 실패했습니다. 다시 시도해주세요");
+        return ResponseEntity.ok("삭제되었습니다");
     }
 
     private String getGithubIdFromToken(String token) {
