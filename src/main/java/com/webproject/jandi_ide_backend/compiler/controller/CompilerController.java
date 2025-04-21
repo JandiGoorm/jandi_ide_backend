@@ -2,12 +2,14 @@ package com.webproject.jandi_ide_backend.compiler.controller;
 
 import com.webproject.jandi_ide_backend.algorithm.solution.entity.Solution;
 import com.webproject.jandi_ide_backend.compiler.dto.CodeSubmissionDto;
+import com.webproject.jandi_ide_backend.compiler.dto.CompilerErrorResponseDto;
+import com.webproject.jandi_ide_backend.compiler.exception.CompilerException;
 import com.webproject.jandi_ide_backend.compiler.service.CompilerService;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
+
+import java.time.LocalDateTime;
 
 @RestController
 @RequestMapping("/api/compiler")
@@ -25,8 +27,34 @@ public class CompilerController {
      * @return 저장된 Solution 엔티티
      */
     @PostMapping("/submit")
-    public ResponseEntity<Solution> submitCode(@RequestBody CodeSubmissionDto submissionDto) {
-        Solution solution = compilerService.submitCode(submissionDto);
-        return ResponseEntity.ok(solution);
+    public ResponseEntity<?> submitCode(@RequestBody CodeSubmissionDto submissionDto) {
+        try {
+            Solution solution = compilerService.submitCode(submissionDto);
+            return ResponseEntity.ok(solution);
+        } catch (CompilerException e) {
+            // 컴파일러 예외 처리
+            CompilerErrorResponseDto errorResponse = CompilerErrorResponseDto.builder()
+                    .status(HttpStatus.BAD_REQUEST.value())
+                    .error("Compilation Failed")
+                    .message(e.getMessage())
+                    .timestamp(LocalDateTime.now())
+                    .errorType(e.getErrorType().name())
+                    .errorDetails(e.getErrorDetails())
+                    .code(e.getCode())
+                    .language(e.getLanguage())
+                    .build();
+            
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(errorResponse);
+        } catch (Exception e) {
+            // 일반 예외 처리
+            CompilerErrorResponseDto errorResponse = CompilerErrorResponseDto.builder()
+                    .status(HttpStatus.INTERNAL_SERVER_ERROR.value())
+                    .error("Server Error")
+                    .message("서버 내부 오류가 발생했습니다: " + e.getMessage())
+                    .timestamp(LocalDateTime.now())
+                    .build();
+            
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(errorResponse);
+        }
     }
 } 

@@ -10,6 +10,7 @@ import com.webproject.jandi_ide_backend.algorithm.testCase.service.TestCaseServi
 import com.webproject.jandi_ide_backend.compiler.dto.CodeSubmissionDto;
 import com.webproject.jandi_ide_backend.compiler.dto.ResultDto;
 import com.webproject.jandi_ide_backend.compiler.dto.ResultStatus;
+import com.webproject.jandi_ide_backend.compiler.exception.CompilerException;
 import com.webproject.jandi_ide_backend.user.entity.User;
 import com.webproject.jandi_ide_backend.user.service.UserService;
 import lombok.extern.slf4j.Slf4j;
@@ -22,6 +23,7 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.*;
+import java.util.stream.Collectors;
 
 @Service
 @Slf4j
@@ -111,21 +113,37 @@ public class CompilerService {
         solution.setExecutionTime(maxExecutionTime.intValue());
         
         // 8. 실행 결과에 따른 상태 설정
+        SolutionStatus status;
         if (isAllPass) {
-            solution.setStatus(SolutionStatus.CORRECT);
+            status = SolutionStatus.CORRECT;
         } else {
             if (hasCompilationError(results)) {
-                solution.setStatus(SolutionStatus.COMPILATION_ERROR);
+                status = SolutionStatus.COMPILATION_ERROR;
+                String errorDetails = getErrorDetails(results);
+                throw new CompilerException("컴파일 에러가 발생했습니다", status, errorDetails, 
+                        submissionDto.getCode(), submissionDto.getLanguage());
             } else if (hasRuntimeError(results)) {
-                solution.setStatus(SolutionStatus.RUNTIME_ERROR);
+                status = SolutionStatus.RUNTIME_ERROR;
+                String errorDetails = getErrorDetails(results);
+                throw new CompilerException("런타임 에러가 발생했습니다", status, errorDetails, 
+                        submissionDto.getCode(), submissionDto.getLanguage());
             } else if (hasTimeoutError(results)) {
-                solution.setStatus(SolutionStatus.TIMEOUT);
+                status = SolutionStatus.TIMEOUT;
+                throw new CompilerException("시간 초과가 발생했습니다", status, "실행 시간이 제한 시간을 초과했습니다", 
+                        submissionDto.getCode(), submissionDto.getLanguage());
             } else if (hasMemoryLimitError(results)) {
-                solution.setStatus(SolutionStatus.MEMORY_LIMIT);
+                status = SolutionStatus.MEMORY_LIMIT;
+                throw new CompilerException("메모리 초과가 발생했습니다", status, "프로그램이 메모리 제한을 초과했습니다", 
+                        submissionDto.getCode(), submissionDto.getLanguage());
             } else {
-                solution.setStatus(SolutionStatus.WRONG_ANSWER);
+                status = SolutionStatus.WRONG_ANSWER;
+                String errorDetails = getWrongAnswerDetails(results);
+                throw new CompilerException("틀린 답안입니다", status, errorDetails, 
+                        submissionDto.getCode(), submissionDto.getLanguage());
             }
         }
+        
+        solution.setStatus(status);
         
         // 9. 솔루션 저장 및 반환
         return solutionService.saveSolution(solution);
@@ -154,40 +172,55 @@ public class CompilerService {
             switch (language.toLowerCase()) {
                 case "java":
                     isCompiled = checkJavaCompilation(code, output);
-                    if (isCompiled) {
-                        isExecuted = checkJavaExecution(code, simpleInput, output);
+                    if (!isCompiled) {
+                        status = SolutionStatus.COMPILATION_ERROR;
+                        throw new CompilerException("자바 컴파일 에러가 발생했습니다", status, output.toString(), code, language);
+                    }
+                    isExecuted = checkJavaExecution(code, simpleInput, output);
+                    if (!isExecuted) {
+                        status = SolutionStatus.RUNTIME_ERROR;
+                        throw new CompilerException("자바 실행 오류가 발생했습니다", status, output.toString(), code, language);
                     }
                     break;
                     
                 case "python":
                     isCompiled = true; // Python은 인터프리터 언어라 컴파일 단계가 없음
                     isExecuted = checkPythonExecution(code, simpleInput, output);
+                    if (!isExecuted) {
+                        status = SolutionStatus.RUNTIME_ERROR;
+                        throw new CompilerException("파이썬 실행 오류가 발생했습니다", status, output.toString(), code, language);
+                    }
                     break;
                     
                 case "c++":
                     isCompiled = checkCppCompilation(code, output);
-                    if (isCompiled) {
-                        isExecuted = checkCppExecution(code, simpleInput, output);
+                    if (!isCompiled) {
+                        status = SolutionStatus.COMPILATION_ERROR;
+                        throw new CompilerException("C++ 컴파일 에러가 발생했습니다", status, output.toString(), code, language);
+                    }
+                    isExecuted = checkCppExecution(code, simpleInput, output);
+                    if (!isExecuted) {
+                        status = SolutionStatus.RUNTIME_ERROR;
+                        throw new CompilerException("C++ 실행 오류가 발생했습니다", status, output.toString(), code, language);
                     }
                     break;
                     
                 default:
                     output.append("🚨ERROR: 지원하지 않는 언어입니다: ").append(language);
-                    status = SolutionStatus.COMPILATION_ERROR;
+                    throw new CompilerException("지원하지 않는 언어입니다", SolutionStatus.COMPILATION_ERROR, 
+                          "언어: " + language + "는 지원되지 않습니다. 지원 언어: java, python, c++", code, language);
             }
             
             // 상태 결정
-            if (!isCompiled) {
-                status = SolutionStatus.COMPILATION_ERROR;
-            } else if (!isExecuted) {
-                status = SolutionStatus.RUNTIME_ERROR;
-            } else {
-                status = SolutionStatus.CORRECT;
-            }
+            status = SolutionStatus.CORRECT;
             
+        } catch (CompilerException e) {
+            // 이미 적절한 CompilerException이 발생한 경우 그대로 전파
+            throw e;
         } catch (Exception e) {
             output.append("🚨ERROR: ").append(e.getMessage());
-            status = SolutionStatus.RUNTIME_ERROR;
+            throw new CompilerException("알 수 없는 오류가 발생했습니다", SolutionStatus.RUNTIME_ERROR, 
+                                      e.getMessage(), code, language);
         }
         
         // Solution 객체 생성 및 반환
@@ -482,5 +515,26 @@ public class CompilerService {
     private boolean hasMemoryLimitError(List<ResultDto> results) {
         return results.stream().anyMatch(result -> 
                 result.getActualResult().contains("메모리 초과"));
+    }
+    
+    private String getErrorDetails(List<ResultDto> results) {
+        return results.stream()
+                .filter(result -> result.getStatus() == ResultStatus.ERROR)
+                .map(ResultDto::getActualResult)
+                .collect(Collectors.joining("\n"));
+    }
+    
+    private String getWrongAnswerDetails(List<ResultDto> results) {
+        StringBuilder details = new StringBuilder();
+        
+        for (ResultDto result : results) {
+            if (result.getStatus() == ResultStatus.FAIL) {
+                details.append("테스트 케이스 ").append(result.getTestNum()).append(":\n")
+                      .append("- 기대 출력: ").append(result.getExpectedResult()).append("\n")
+                      .append("- 실제 출력: ").append(result.getActualResult()).append("\n");
+            }
+        }
+        
+        return details.toString();
     }
 } 
