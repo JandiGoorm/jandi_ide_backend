@@ -4,7 +4,6 @@ import com.webproject.jandi_ide_backend.algorithm.problem.entity.Problem;
 import com.webproject.jandi_ide_backend.algorithm.testCase.entity.TestCase;
 import com.webproject.jandi_ide_backend.compiler.dto.ResultDto;
 import com.webproject.jandi_ide_backend.compiler.dto.ResultStatus;
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
@@ -13,9 +12,12 @@ import java.util.*;
 import java.util.concurrent.*;
 
 @Service
-@RequiredArgsConstructor
 @Slf4j
 public class PythonCompiler {
+
+    public PythonCompiler() {
+        // 기본 생성자
+    }
 
     public List<ResultDto> runCode(Problem problem, List<TestCase> testcases, String code) {
         List<ResultDto> results = new ArrayList<>();

@@ -12,7 +12,6 @@ import com.webproject.jandi_ide_backend.compiler.dto.ResultDto;
 import com.webproject.jandi_ide_backend.compiler.dto.ResultStatus;
 import com.webproject.jandi_ide_backend.user.entity.User;
 import com.webproject.jandi_ide_backend.user.service.UserService;
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -25,7 +24,6 @@ import java.util.List;
 import java.util.concurrent.*;
 
 @Service
-@RequiredArgsConstructor
 @Slf4j
 public class CompilerService {
 
@@ -36,6 +34,23 @@ public class CompilerService {
     private final TestCaseService testCaseService;
     private final UserService userService;
     private final SolutionService solutionService;
+
+    public CompilerService(
+            JavaCompiler javaCompiler,
+            PythonCompiler pythonCompiler,
+            CppCompiler cppCompiler,
+            ProblemService problemService,
+            TestCaseService testCaseService,
+            UserService userService,
+            SolutionService solutionService) {
+        this.javaCompiler = javaCompiler;
+        this.pythonCompiler = pythonCompiler;
+        this.cppCompiler = cppCompiler;
+        this.problemService = problemService;
+        this.testCaseService = testCaseService;
+        this.userService = userService;
+        this.solutionService = solutionService;
+    }
 
     /**
      * 사용자 코드를 제출받아 컴파일 및 실행 후 결과를 저장합니다.
@@ -55,7 +70,7 @@ public class CompilerService {
         
         // 2. 일반적인 경우: 문제와 테스트 케이스 조회 및 실행
         Problem problem = problemService.getProblemById(submissionDto.getProblemId());
-        List<TestCase> testCases = testCaseService.getTestCasesByProblemId(problem.getId());
+        List<TestCase> testCases = testCaseService.getTestCasesByProblemId(submissionDto.getProblemId());
         
         // 3. 언어별 컴파일러 선택 및 실행
         List<ResultDto> results = compileAndRun(problem, testCases, submissionDto.getCode(), submissionDto.getLanguage());

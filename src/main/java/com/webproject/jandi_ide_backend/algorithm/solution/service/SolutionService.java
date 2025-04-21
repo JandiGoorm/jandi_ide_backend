@@ -2,7 +2,6 @@ package com.webproject.jandi_ide_backend.algorithm.solution.service;
 
 import com.webproject.jandi_ide_backend.algorithm.solution.entity.Solution;
 import com.webproject.jandi_ide_backend.algorithm.solution.repository.SolutionRepository;
-import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -10,10 +9,13 @@ import java.util.List;
 import java.util.Optional;
 
 @Service
-@RequiredArgsConstructor
 public class SolutionService {
     
     private final SolutionRepository solutionRepository;
+    
+    public SolutionService(SolutionRepository solutionRepository) {
+        this.solutionRepository = solutionRepository;
+    }
     
     /**
      * 제출된 솔루션을 저장합니다.
