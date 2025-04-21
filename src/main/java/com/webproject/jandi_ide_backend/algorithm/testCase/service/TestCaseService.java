@@ -10,6 +10,8 @@ import com.webproject.jandi_ide_backend.global.error.CustomErrorCodes;
 import com.webproject.jandi_ide_backend.global.error.CustomException;
 import org.springframework.stereotype.Service;
 
+import java.util.List;
+
 @Service
 public class TestCaseService {
     private final ProblemRepository problemRepository;
@@ -74,6 +76,15 @@ public class TestCaseService {
         } catch (Exception e) {
             throw new CustomException(CustomErrorCodes.DB_OPERATION_FAILED);
         }
+    }
+
+    /**
+     * 주어진 문제 ID에 해당하는 모든 테스트 케이스를 조회합니다.
+     * @param problemId 조회할 문제의 ID
+     * @return 테스트 케이스 목록
+     */
+    public List<TestCase> getTestCasesByProblemId(Integer problemId) {
+        return testCaseRepository.findByProblemId(problemId);
     }
 
     public TestCaseResponseDTO convertToDTO(TestCase testCase){
