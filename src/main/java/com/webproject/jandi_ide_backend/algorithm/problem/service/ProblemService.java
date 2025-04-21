@@ -1,21 +1,31 @@
 package com.webproject.jandi_ide_backend.algorithm.problem.service;
 
+import com.webproject.jandi_ide_backend.algorithm.problem.dto.ProblemDetailResponseDTO;
 import com.webproject.jandi_ide_backend.algorithm.problem.dto.ProblemRequestDTO;
 import com.webproject.jandi_ide_backend.algorithm.problem.dto.ProblemResponseDTO;
 import com.webproject.jandi_ide_backend.algorithm.problem.entity.Problem;
 import com.webproject.jandi_ide_backend.algorithm.problem.repository.ProblemRepository;
+import com.webproject.jandi_ide_backend.algorithm.testCase.dto.TestCaseResponseDTO;
+import com.webproject.jandi_ide_backend.algorithm.testCase.entity.TestCase;
+import com.webproject.jandi_ide_backend.algorithm.testCase.repository.TestCaseRepository;
+import com.webproject.jandi_ide_backend.algorithm.testCase.service.TestCaseService;
 import com.webproject.jandi_ide_backend.global.error.CustomErrorCodes;
 import com.webproject.jandi_ide_backend.global.error.CustomException;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
+import java.util.stream.Collectors;
 
 @Service
 public class ProblemService {
     private final ProblemRepository problemRepository;
+    private final TestCaseRepository testCaseRepository;
+    private final TestCaseService testCaseService;
 
-    public ProblemService(ProblemRepository problemRepository) {
+    public ProblemService(ProblemRepository problemRepository, TestCaseRepository testCaseRepository, TestCaseService testCaseService) {
         this.problemRepository = problemRepository;
+        this.testCaseRepository = testCaseRepository;
+        this.testCaseService = testCaseService;
     }
 
     public List<ProblemResponseDTO> getProblems() {
@@ -59,6 +69,27 @@ public class ProblemService {
         }
 
         return convertToProblemResponseDTO(problem);
+    }
+
+    public ProblemDetailResponseDTO getProblemDetail(Integer id){
+        Problem problem = problemRepository.findById(id).orElseThrow(() -> new CustomException(CustomErrorCodes.PROBLEM_NOT_FOUND));
+        List<TestCase> testCases = testCaseRepository.findByProblemId(id);
+        List<TestCaseResponseDTO> testCaseDTOs = testCases.stream()
+                .map(testCaseService::convertToDTO)
+                .collect(Collectors.toList());
+
+        ProblemDetailResponseDTO detailDTO = new ProblemDetailResponseDTO();
+        detailDTO.setId(problem.getId());
+        detailDTO.setDescription(problem.getDescription());
+        detailDTO.setLevel(problem.getLevel());
+        detailDTO.setMemory(problem.getMemory());
+        detailDTO.setTimeLimit(problem.getTimeLimit());
+        detailDTO.setTestCases(testCaseDTOs);
+        detailDTO.setTags(problem.getTags());
+        detailDTO.setCreatedAt(problem.getCreatedAt());
+        detailDTO.setUpdatedAt(problem.getUpdatedAt());
+
+        return detailDTO;
     }
 
     public void deleteProblem(Integer id){
