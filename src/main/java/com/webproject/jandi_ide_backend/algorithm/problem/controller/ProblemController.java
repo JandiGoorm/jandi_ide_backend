@@ -1,8 +1,12 @@
 package com.webproject.jandi_ide_backend.algorithm.problem.controller;
 
+import com.webproject.jandi_ide_backend.algorithm.problem.dto.ProblemDetailResponseDTO;
 import com.webproject.jandi_ide_backend.algorithm.problem.dto.ProblemRequestDTO;
 import com.webproject.jandi_ide_backend.algorithm.problem.dto.ProblemResponseDTO;
 import com.webproject.jandi_ide_backend.algorithm.problem.service.ProblemService;
+import com.webproject.jandi_ide_backend.algorithm.testCase.dto.TestCaseRequestDTO;
+import com.webproject.jandi_ide_backend.algorithm.testCase.dto.TestCaseResponseDTO;
+import com.webproject.jandi_ide_backend.algorithm.testCase.service.TestCaseService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.ArraySchema;
@@ -22,9 +26,11 @@ import java.util.List;
 @RequestMapping("/api/problems")
 public class ProblemController {
     private final ProblemService problemService;
+    private final TestCaseService testCaseService;
 
-    public ProblemController(ProblemService problemService) {
+    public ProblemController(ProblemService problemService, TestCaseService testCaseService) {
         this.problemService = problemService;
+        this.testCaseService = testCaseService;
     }
 
     @GetMapping
@@ -43,6 +49,26 @@ public class ProblemController {
     public ResponseEntity<List<ProblemResponseDTO>> findAllProblems(){
         List<ProblemResponseDTO> problems = problemService.getProblems();
         return ResponseEntity.ok(problems);
+    }
+
+    @GetMapping("/{id}")
+    @Operation(summary = "특정 문제 조회 (테스트 케이스 포함)",
+            description = "특정 문제를 조회합니다.",
+            security = { @SecurityRequirement(name = "Authorization") })
+    @ApiResponses(value = {
+            @ApiResponse(
+                    responseCode = "200",
+                    description = "조회 성공",
+                    content = @Content(
+                            schema = @Schema(implementation = ProblemDetailResponseDTO.class)
+                    )
+            )
+    })
+    public ResponseEntity<ProblemDetailResponseDTO> getProblemDetail(
+            @PathVariable Integer id
+    ){
+        ProblemDetailResponseDTO problemDetailResponseDTO = problemService.getProblemDetail(id);
+        return ResponseEntity.ok(problemDetailResponseDTO);
     }
 
     @PostMapping
@@ -104,5 +130,26 @@ public class ProblemController {
     ){
         problemService.deleteProblem(id);
         return ResponseEntity.ok("문제 삭제 성공");
+    }
+
+    @PostMapping("/{id}/test-case")
+    @Operation(summary = "테스트 케이스 추가 (STAFF 이상)",
+            description = "해당 문제의 테스트케이스를 추가합니다.",
+            security = { @SecurityRequirement(name = "Authorization") })
+    @ApiResponses(value = {
+            @ApiResponse(
+                    responseCode = "200",
+                    description = "추가 성공",
+                    content = @Content(
+                            schema = @Schema(implementation = TestCaseResponseDTO.class)
+                    )
+            )
+    })
+    public ResponseEntity<TestCaseResponseDTO> postTestCase(
+            @RequestBody TestCaseRequestDTO requestDTO,
+            @PathVariable Integer id
+    ){
+        TestCaseResponseDTO testCaseResponseDTO = testCaseService.postTestCase(requestDTO,id);
+        return ResponseEntity.ok(testCaseResponseDTO);
     }
 }
