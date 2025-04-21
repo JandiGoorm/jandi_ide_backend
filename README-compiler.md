@@ -36,7 +36,7 @@ POST /api/compiler/submit
 | 필드 | 타입 | 필수 | 설명 |
 |------|------|------|------|
 | userId | Long | O | 코드를 제출한 사용자의 ID |
-| problemId | Integer | O | 풀이한 문제의 ID (특별히 0을 입력하면 테스트 모드로 동작) |
+| problemId | Long | O | 풀이한 문제의 ID (특별히 0을 입력하면 테스트 모드로 동작) |
 | code | String | O | 제출한 코드 내용 |
 | language | String | O | 프로그래밍 언어 (java, python, c++) |
 | solvingTime | Integer | X | 문제 풀이에 소요된 시간 (초 단위) |
@@ -267,3 +267,7 @@ Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
    - `RUNTIME_ERROR`: 실행 중 오류 발생 (예: 배열 인덱스 범위 초과, 널 포인터 등)
    - `TIMEOUT`: 실행 시간 초과
    - `MEMORY_LIMIT`: 메모리 사용량 초과 
+5. 내부 구현에서는 테스트 케이스별 결과 상태로 다음 값들이 사용됩니다:
+   - `PASS`: 테스트 케이스 통과
+   - `FAIL`: 테스트 케이스 실패 (출력 결과가 다른 경우)
+   - `ERROR`: 테스트 케이스 실행 중 오류 발생 
