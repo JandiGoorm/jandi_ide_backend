@@ -1,15 +1,20 @@
 package com.webproject.jandi_ide_backend.algorithm.problemSet.service;
 
+import com.webproject.jandi_ide_backend.algorithm.problem.dto.ProblemDetailResponseDTO;
 import com.webproject.jandi_ide_backend.algorithm.problem.entity.Problem;
 import com.webproject.jandi_ide_backend.algorithm.problem.repository.ProblemRepository;
+import com.webproject.jandi_ide_backend.algorithm.problem.service.ProblemService;
 import com.webproject.jandi_ide_backend.algorithm.problemSet.Repository.ProblemSetRepository;
 import com.webproject.jandi_ide_backend.algorithm.problemSet.dto.ReqPostProblemSetDTO;
 import com.webproject.jandi_ide_backend.algorithm.problemSet.dto.ReqUpdateProblemSetDTO;
+import com.webproject.jandi_ide_backend.algorithm.problemSet.dto.RespDetailProblemSet;
 import com.webproject.jandi_ide_backend.algorithm.problemSet.dto.RespProblemSetDTO;
 import com.webproject.jandi_ide_backend.algorithm.problemSet.dto.RespSpecProblemSetDTO;
 import com.webproject.jandi_ide_backend.algorithm.problemSet.entity.ProblemSet;
 import com.webproject.jandi_ide_backend.company.entity.Company;
 import com.webproject.jandi_ide_backend.company.repository.CompanyRepository;
+import com.webproject.jandi_ide_backend.global.error.CustomErrorCodes;
+import com.webproject.jandi_ide_backend.global.error.CustomException;
 import com.webproject.jandi_ide_backend.user.entity.User;
 import com.webproject.jandi_ide_backend.user.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
@@ -18,9 +23,9 @@ import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
 import java.time.ZoneId;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Optional;
+
+import java.util.*;
+import java.util.stream.Collectors;
 
 @Slf4j
 @Service
@@ -30,6 +35,7 @@ public class ProblemSetService {
     private final ProblemRepository problemRepository;
     private final UserRepository userRepository;
     private final CompanyRepository companyRepository;
+    private final ProblemService problemService;
 
     /// API
     public RespProblemSetDTO createProblemSet(ReqPostProblemSetDTO probSetDTO, String githubId) {
@@ -63,6 +69,22 @@ public class ProblemSetService {
         return problemSetList.stream()
                 .map(RespProblemSetDTO::fromEntity)
                 .toList();
+    }
+
+    public RespDetailProblemSet readProblemSetDetail(Long id) {
+        ProblemSet problemSet = problemSetRepository.findById(id).orElseThrow(()->new CustomException(CustomErrorCodes.PROBLEMSET_NOT_FOUND));
+        List<ProblemDetailResponseDTO> problems = getProblemsInProblemSet(problemSet);
+
+        return new RespDetailProblemSet(
+                problemSet.getId(),
+                problemSet.getTitle(),
+                problemSet.getIsPrevious(),
+                problemSet.getSolvingTimeInMinutes(),
+                problemSet.getDescription(),
+                problemSet.getCreatedAt(),
+                problemSet.getUpdatedAt(),
+                problems
+        );
     }
 
     public RespProblemSetDTO updateProblemSet(Long problemSetId, ReqUpdateProblemSetDTO probSetDTO, String githubId) {
@@ -105,9 +127,34 @@ public class ProblemSetService {
 
     // 기업 문제집 - 랜덤 지정 문제 로드
     private List<Integer> setRandProblems(Company company) {
-        List<Integer> problemIds = new ArrayList<>();
-        problemIds.add(1);
-        problemIds.add(2);
+        List<Integer> problemIds = new ArrayList<>(); // 반환할 문제 id 값의 배열
+        Map<Integer, Integer> levelCountMap = new HashMap<>();
+
+        // 레벨별로 몇 개 뽑아야 하는지 세기
+        for (int level : company.getLevels()) {
+            levelCountMap.put(level, levelCountMap.getOrDefault(level, 0) + 1);
+        }
+
+        for (Map.Entry<Integer, Integer> entry : levelCountMap.entrySet()) {
+            int level = entry.getKey();
+            int count = entry.getValue();
+
+            // 레벨에 해당하는 모든 문제 가져오기
+            List<Problem> problemsByLevel = problemRepository.findByLevel(level);
+
+            // 문제 수가 부족하면 예외 처리
+            if (problemsByLevel.size() < count) {
+                throw new CustomException(CustomErrorCodes.INSUFFICIENT_PROBLEMS);
+            }
+
+            // 랜덤 셔플 후 앞에서 count 개 선택
+            Collections.shuffle(problemsByLevel);
+            List<Problem> selected = problemsByLevel.subList(0, count);
+
+            for (Problem p : selected) {
+                problemIds.add(p.getId());
+            }
+        }
 
         return problemIds;
     }
@@ -133,6 +180,14 @@ public class ProblemSetService {
             throw new RuntimeException("잘못된 문제를 선택하셨습니다.");
 
         return customProblems;
+    }
+
+    //문제집에 포함된 문제들의 자세한 내용을 로드
+    public List<ProblemDetailResponseDTO> getProblemsInProblemSet(ProblemSet problemSet){
+        List<Integer> problemIds = problemSet.getProblems();
+        return problemIds.stream()
+                .map(problemService::getProblemDetail)
+                .collect(Collectors.toList());
     }
 
     /// 실제 DB CRUD
