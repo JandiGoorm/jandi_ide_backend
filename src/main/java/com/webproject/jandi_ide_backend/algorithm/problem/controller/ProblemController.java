@@ -1,6 +1,7 @@
 package com.webproject.jandi_ide_backend.algorithm.problem.controller;
 
 import com.webproject.jandi_ide_backend.algorithm.problem.dto.ProblemDetailResponseDTO;
+import com.webproject.jandi_ide_backend.algorithm.problem.dto.ProblemPageResponseDTO;
 import com.webproject.jandi_ide_backend.algorithm.problem.dto.ProblemRequestDTO;
 import com.webproject.jandi_ide_backend.algorithm.problem.dto.ProblemResponseDTO;
 import com.webproject.jandi_ide_backend.algorithm.problem.service.ProblemService;
@@ -18,8 +19,6 @@ import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-
-import java.util.List;
 
 @Tag(name="Problem", description = "문제 관련 API")
 @RestController
@@ -42,12 +41,15 @@ public class ProblemController {
                     responseCode = "200",
                     description = "조회 성공",
                     content = @Content(
-                            array = @ArraySchema(schema = @Schema(implementation = ProblemResponseDTO.class))
+                            array = @ArraySchema(schema = @Schema(implementation = ProblemPageResponseDTO.class))
                     )
             )
     })
-    public ResponseEntity<List<ProblemResponseDTO>> findAllProblems(){
-        List<ProblemResponseDTO> problems = problemService.getProblems();
+    public ResponseEntity<ProblemPageResponseDTO> findAllProblems(
+            @RequestParam(value="page",defaultValue = "0") Integer page,
+            @RequestParam(value="size",defaultValue = "10") Integer size
+    ){
+        ProblemPageResponseDTO problems = problemService.getProblems(page,size);
         return ResponseEntity.ok(problems);
     }
 

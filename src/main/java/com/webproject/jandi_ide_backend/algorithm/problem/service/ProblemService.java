@@ -1,6 +1,7 @@
 package com.webproject.jandi_ide_backend.algorithm.problem.service;
 
 import com.webproject.jandi_ide_backend.algorithm.problem.dto.ProblemDetailResponseDTO;
+import com.webproject.jandi_ide_backend.algorithm.problem.dto.ProblemPageResponseDTO;
 import com.webproject.jandi_ide_backend.algorithm.problem.dto.ProblemRequestDTO;
 import com.webproject.jandi_ide_backend.algorithm.problem.dto.ProblemResponseDTO;
 import com.webproject.jandi_ide_backend.algorithm.problem.entity.Problem;
@@ -11,6 +12,9 @@ import com.webproject.jandi_ide_backend.algorithm.testCase.repository.TestCaseRe
 import com.webproject.jandi_ide_backend.algorithm.testCase.service.TestCaseService;
 import com.webproject.jandi_ide_backend.global.error.CustomErrorCodes;
 import com.webproject.jandi_ide_backend.global.error.CustomException;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -28,14 +32,34 @@ public class ProblemService {
         this.testCaseService = testCaseService;
     }
 
-    public List<ProblemResponseDTO> getProblems() {
-        return problemRepository.findAll().stream()
+    public ProblemPageResponseDTO getProblems(Integer page, Integer size) {
+        long totalItems = problemRepository.count();
+        int totalPages = (int)Math.ceil((double)totalItems/size);
+
+        if(page < 0 || page >= totalPages){
+            throw new CustomException(CustomErrorCodes.INVALID_PAGE);
+        }
+
+        Pageable pageable = PageRequest.of(page, size);
+        Page<Problem>problemPage = problemRepository.findAll(pageable);
+
+        List<ProblemResponseDTO> problemDTOs = problemPage.getContent().stream()
                 .map(this::convertToProblemResponseDTO)
                 .toList();
+
+        ProblemPageResponseDTO responseDTO = new ProblemPageResponseDTO();
+        responseDTO.setData(problemDTOs);
+        responseDTO.setCurrentPage(problemPage.getNumber());
+        responseDTO.setSize(problemPage.getSize());
+        responseDTO.setTotalItems(problemPage.getTotalElements());
+        responseDTO.setTotalPages(problemPage.getTotalPages());
+
+        return responseDTO;
     }
 
     public ProblemResponseDTO postProblem(ProblemRequestDTO problemRequestDTO) {
         Problem problem = new Problem();
+        problem.setTitle(problemRequestDTO.getTitle());
         problem.setDescription(problemRequestDTO.getDescription());
         problem.setLevel(problemRequestDTO.getLevel());
         problem.getTags().addAll(problemRequestDTO.getTags());
@@ -54,6 +78,7 @@ public class ProblemService {
     public ProblemResponseDTO updateProblem(ProblemRequestDTO problemRequestDTO,Integer id) {
         Problem problem = problemRepository.findById(id).orElseThrow(() -> new CustomException(CustomErrorCodes.PROBLEM_NOT_FOUND));
 
+        problem.setTitle(problemRequestDTO.getTitle());
         problem.setDescription(problemRequestDTO.getDescription());
         problem.setLevel(problemRequestDTO.getLevel());
         problem.setMemory(problemRequestDTO.getMemory());
@@ -81,6 +106,7 @@ public class ProblemService {
         ProblemDetailResponseDTO detailDTO = new ProblemDetailResponseDTO();
         detailDTO.setId(problem.getId());
         detailDTO.setDescription(problem.getDescription());
+        detailDTO.setTitle(problem.getTitle());
         detailDTO.setLevel(problem.getLevel());
         detailDTO.setMemory(problem.getMemory());
         detailDTO.setTimeLimit(problem.getTimeLimit());
@@ -123,6 +149,7 @@ public class ProblemService {
         problemResponseDTO.setTags(problem.getTags());
         problemResponseDTO.setCreatedAt(problem.getCreatedAt());
         problemResponseDTO.setUpdatedAt(problem.getUpdatedAt());
+        problemResponseDTO.setTitle(problem.getTitle());
 
         return problemResponseDTO;
     }

@@ -12,6 +12,9 @@ public class ProblemResponseDTO {
     @Schema(description = "문제 고유 ID", example = "1")
     private Integer id;
 
+    @Schema(description = "문제 제목", example = "A+B")
+    private String title;
+
     @Schema(description = "문제 설명", example = "주어진 정수 배열에서 가장 큰 값을 구하세요.")
     private String description;
 

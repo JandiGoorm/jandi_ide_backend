@@ -14,6 +14,9 @@ import java.util.List;
 @AllArgsConstructor
 public class ProblemRequestDTO {
 
+    @Schema(title="문제의 제목", example = "A+B")
+    private String title;
+
     @Schema(description = "문제에 대한 설명", example = "주어진 정수 배열에서 가장 큰 값을 구하세요.")
     private String description;
 
