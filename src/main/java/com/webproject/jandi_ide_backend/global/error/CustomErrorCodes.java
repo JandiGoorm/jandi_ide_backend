@@ -25,6 +25,7 @@ public enum CustomErrorCodes implements CustomErrorCodeInterface {
     COMPANY_NOT_FOUND(HttpStatus.NOT_FOUND, "COMPANY_NOT_FOUND", "Company not found"), // 회사를 찾을 수 없음
     JOBPOSTING_NOT_FOUND(HttpStatus.NOT_FOUND, "JOBPOSTING_NOT_FOUND", "Jobposting not found"),
     PROBLEM_NOT_FOUND(HttpStatus.NOT_FOUND, "PROBLEM_NOT_FOUND", "Problem not found"),
+    PROBLEMSET_NOT_FOUND(HttpStatus.NOT_FOUND, "PROBLEMSET_NOT_FOUND", "Problem set not found"),
     TESTCASE_NOT_FOUND(HttpStatus.NOT_FOUND, "TESTCASE_NOT_FOUND", "Testcase not found"),
 
     INSUFFICIENT_PROBLEMS(HttpStatus.BAD_REQUEST, "INSUFFICIENT_PROBLEMS", "레벨에 맞는 문제가 부족합니다."),
