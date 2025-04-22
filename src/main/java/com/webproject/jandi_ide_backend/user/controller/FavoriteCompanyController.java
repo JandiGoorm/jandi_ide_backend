@@ -28,8 +28,8 @@ public class FavoriteCompanyController {
         return favoriteCompanyService.readFavoriteCompany(githubId);
     }
 
-    @PutMapping("")
-    public List<RespFavoriteCompanyDTO> putFavoriteCompany(
+    @PostMapping("")
+    public List<RespFavoriteCompanyDTO> PostFavoriteCompany(
             @Parameter(hidden = true) @RequestHeader("Authorization") String token,
             @RequestBody ReqFavoriteCompanyDTO reqDTO
     ) {
@@ -38,7 +38,7 @@ public class FavoriteCompanyController {
             throw new RuntimeException("선택된 기업이 없습니다");
 
         String githubId = getGithubIdFromToken(token);
-        return favoriteCompanyService.putFavoriteCompany(githubId, reqDTO.getCompanyNameList());
+        return favoriteCompanyService.postFavoriteCompany(githubId, reqDTO.getCompanyNameList());
     }
 
     private String getGithubIdFromToken(String token) {

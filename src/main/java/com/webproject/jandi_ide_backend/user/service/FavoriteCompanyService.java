@@ -34,8 +34,8 @@ public class FavoriteCompanyService {
                 .toList();
     }
 
-    // 이전의 선호 기업 정보를 지우고 새 정보로 대체
-    public List<RespFavoriteCompanyDTO> putFavoriteCompany(String githubId, List<String> companyNameList) {
+    // 선호 기업 추가 - 첫 로그인용
+    public List<RespFavoriteCompanyDTO> postFavoriteCompany(String githubId, List<String> companyNameList) {
         // 유저 검증
         User user = userRepository.findByGithubId(githubId)
                 .orElseThrow(() -> new RuntimeException("유저가 존재하지 않습니다."));
@@ -50,7 +50,7 @@ public class FavoriteCompanyService {
         if (newCompanyList.isEmpty())
             throw new RuntimeException("잘못된 기업을 선택하셨습니다.");
 
-        // 기존 선호 기업 정보 제거
+        // 기존 선호 기업 정보 제거 - 혹시 모르니까...?
         List<UserFavoriteCompany> favoriteCompanyList = userFavoriteCompanyRepository.findAllByUser(user);
         if (!favoriteCompanyList.isEmpty()) {
             userFavoriteCompanyRepository.deleteAll(favoriteCompanyList);
