@@ -197,59 +197,73 @@ public class CompilerService {
             // 언어별 처리
             switch (language.toLowerCase()) {
                 case "java":
-                    // Java 코드 컴파일 및 실행
+                    output.append("자바 코드 컴파일 시작...\n");
                     isCompiled = checkJavaCompilation(code, output);
                     if (!isCompiled) {
                         status = SolutionStatus.COMPILATION_ERROR;
+                        output.append("\n컴파일 에러 발생: 코드를 확인해 주세요.\n");
+                        output.append("세미콜론 누락, 괄호 불일치, 메서드 이름 오타 등이 흔한 원인입니다.\n");
                         throw new CompilerException("자바 컴파일 에러가 발생했습니다", status, output.toString(), code, language);
                     }
+                    output.append("컴파일 성공. 실행 시작...\n\n");
                     isExecuted = checkJavaExecution(code, simpleInput, output);
                     if (!isExecuted) {
                         status = SolutionStatus.RUNTIME_ERROR;
+                        output.append("\n런타임 에러 발생: 실행 중 오류가 발생했습니다.\n");
+                        output.append("배열 인덱스 범위, null 참조, 형변환 오류 등을 확인해 보세요.\n");
                         throw new CompilerException("자바 실행 오류가 발생했습니다", status, output.toString(), code, language);
                     }
                     break;
                     
                 case "python":
-                    // Python 코드 실행 (인터프리터 언어라 컴파일 단계 없음)
-                    isCompiled = true;
+                    output.append("파이썬 코드 실행 시작...\n");
+                    isCompiled = true; // Python은 인터프리터 언어라 컴파일 단계가 없음
                     isExecuted = checkPythonExecution(code, simpleInput, output);
                     if (!isExecuted) {
                         status = SolutionStatus.RUNTIME_ERROR;
+                        output.append("\n실행 오류 발생: 코드를 확인해 주세요.\n");
+                        output.append("들여쓰기, 변수 이름 오타, 라이브러리 사용 방법 등을 확인해 보세요.\n");
                         throw new CompilerException("파이썬 실행 오류가 발생했습니다", status, output.toString(), code, language);
                     }
                     break;
                     
                 case "c++":
-                    // C++ 코드 컴파일 및 실행
+                    output.append("C++ 코드 컴파일 시작...\n");
                     isCompiled = checkCppCompilation(code, output);
                     if (!isCompiled) {
                         status = SolutionStatus.COMPILATION_ERROR;
+                        output.append("\n컴파일 에러 발생: 코드를 확인해 주세요.\n");
+                        output.append("세미콜론 누락, 헤더 파일 포함, 변수 초기화 등이 흔한 원인입니다.\n");
                         throw new CompilerException("C++ 컴파일 에러가 발생했습니다", status, output.toString(), code, language);
                     }
+                    output.append("컴파일 성공! 실행 시작...\n\n");
                     isExecuted = checkCppExecution(code, simpleInput, output);
                     if (!isExecuted) {
                         status = SolutionStatus.RUNTIME_ERROR;
+                        output.append("\n런타임 에러 발생: 실행 중 오류가 발생했습니다.\n");
+                        output.append("메모리 관리, 세그먼테이션 오류, 포인터 사용 등을 확인해 보세요.\n");
                         throw new CompilerException("C++ 실행 오류가 발생했습니다", status, output.toString(), code, language);
                     }
                     break;
                     
                 default:
-                    // 지원하지 않는 언어 처리
-                    output.append("🚨ERROR: 지원하지 않는 언어입니다: ").append(language);
+                    output.append("지원하지 않는 언어입니다: ").append(language);
+                    output.append("\n현재 지원 언어: java, python, c++");
                     throw new CompilerException("지원하지 않는 언어입니다", SolutionStatus.COMPILATION_ERROR, 
                           "언어: " + language + "는 지원되지 않습니다. 지원 언어: java, python, c++", code, language);
             }
             
             // 상태 결정 - 모든 검사 통과 시 CORRECT
             status = SolutionStatus.CORRECT;
+            output.append("\n테스트 완료: 코드가 정상적으로 실행되었습니다.\n");
             
         } catch (CompilerException e) {
             // 이미 적절한 CompilerException이 발생한 경우 그대로 전파
             throw e;
         } catch (Exception e) {
             // 예상치 못한 예외 처리
-            output.append("🚨ERROR: ").append(e.getMessage());
+            output.append("예상치 못한 오류: ").append(e.getMessage()).append("\n");
+            output.append("시스템 관리자에게 문의하세요.");
             throw new CompilerException("알 수 없는 오류가 발생했습니다", SolutionStatus.RUNTIME_ERROR, 
                                       e.getMessage(), code, language);
         }

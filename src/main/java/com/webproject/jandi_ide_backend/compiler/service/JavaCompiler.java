@@ -36,8 +36,15 @@ public class JavaCompiler {
             try (FileWriter writer = new FileWriter(javaFile)) {
                 writer.write(code);
             } catch (IOException e) {
-                output.append("🚨ERROR: ").append(e.getMessage()).append("\n");
-                results.add(ResultDto.builder().testNum(i+1).actualResult(output.toString()).status(ResultStatus.COMPILATION_ERROR).build());
+                output.append("파일 생성 오류: ").append(e.getMessage()).append("\n");
+                output.append("파일 시스템 권한이나 디스크 공간을 확인해 주세요.\n");
+                results.add(ResultDto.builder()
+                        .testNum(i+1)
+                        .input(input)
+                        .expectedResult(expectedOutput)
+                        .actualResult(output.toString())
+                        .status(ResultStatus.COMPILATION_ERROR)
+                        .build());
                 continue;
             }
 
@@ -49,7 +56,7 @@ public class JavaCompiler {
                 compileProcess.waitFor();
 
                 if (compileProcess.exitValue() != 0) {
-
+                    output.append("컴파일 에러 발생:\n");
                     try (BufferedReader errorReader = new BufferedReader(new InputStreamReader(compileProcess.getErrorStream()))) {
                         String errorLine;
 
@@ -57,13 +64,32 @@ public class JavaCompiler {
                             output.append(errorLine).append("\n");
                         }
                     }
-                    results.add(ResultDto.builder().testNum(i+1).actualResult(output.toString()).status(ResultStatus.COMPILATION_ERROR).build());
+                    output.append("\n일반적인 컴파일 오류 원인:\n");
+                    output.append("  - 세미콜론(;) 누락\n");
+                    output.append("  - 괄호 불일치\n");
+                    output.append("  - 변수 또는 메소드 이름 오타\n");
+                    output.append("  - 타입 불일치\n");
+                    
+                    results.add(ResultDto.builder()
+                            .testNum(i+1)
+                            .input(input)
+                            .expectedResult(expectedOutput)
+                            .actualResult(output.toString())
+                            .status(ResultStatus.COMPILATION_ERROR)
+                            .build());
                     javaFile.delete();
                     continue;
                 }
             } catch (IOException | InterruptedException e) {
-                output.append("🚨ERROR: ").append(e.getMessage()).append("\n");
-                results.add(ResultDto.builder().testNum(i+1).actualResult(output.toString()).status(ResultStatus.RUNTIME_ERROR).build());
+                output.append("컴파일 프로세스 오류: ").append(e.getMessage()).append("\n");
+                output.append("JDK가 올바르게 설치되어 있는지 확인해 주세요.\n");
+                results.add(ResultDto.builder()
+                        .testNum(i+1)
+                        .input(input)
+                        .expectedResult(expectedOutput)
+                        .actualResult(output.toString())
+                        .status(ResultStatus.RUNTIME_ERROR)
+                        .build());
                 continue;
             }
 
@@ -108,25 +134,51 @@ public class JavaCompiler {
                 } catch (TimeoutException e) {
                     runProcess.destroy();
                     future.cancel(true);  // Future 강제 취소
-                    result = "⌛️[ 시간 초과 ]\n";
-                    results.add(ResultDto.builder().testNum(i+1).actualResult(result).status(ResultStatus.TIMEOUT).build());
+                    output.append("시간 초과 발생: 실행 시간이 제한(")
+                          .append(problem.getTimeLimit())
+                          .append("초)을 초과했습니다.\n");
+                    output.append("알고리즘의 복잡도를 개선하거나, 무한 루프를 확인해 보세요.\n");
+                    
+                    results.add(ResultDto.builder()
+                            .testNum(i+1)
+                            .input(input)
+                            .expectedResult(expectedOutput)
+                            .actualResult(output.toString())
+                            .status(ResultStatus.TIMEOUT)
+                            .build());
                     break;
 
                 } catch (ExecutionException e) {
                     if (e.getCause() instanceof OutOfMemoryError) {
                         runProcess.destroy();
                         future.cancel(true);  // Future 강제 취소
-                        result = "🚫[ 메모리 초과 ]\n";
-                        results.add(ResultDto.builder().testNum(i+1).actualResult(result).status(ResultStatus.MEMORY_LIMIT).build());
+                        output.append("메모리 초과 발생: 메모리 사용량이 제한(")
+                              .append(problem.getMemory())
+                              .append("MB)을 초과했습니다.\n");
+                        output.append("메모리 사용량을 줄이거나, 불필요한 객체 생성을 확인해 보세요.\n");
+                        
+                        results.add(ResultDto.builder()
+                                .testNum(i+1)
+                                .input(input)
+                                .expectedResult(expectedOutput)
+                                .actualResult(output.toString())
+                                .status(ResultStatus.MEMORY_LIMIT)
+                                .build());
                         break;
-
                     } else {
                         runProcess.destroy();
-                        result = "🚨[ 오류 ]\n";
-                        results.add(ResultDto.builder().testNum(i+1).actualResult(result).status(ResultStatus.RUNTIME_ERROR).build());
+                        output.append("런타임 오류 발생: ").append(e.getCause().getMessage()).append("\n");
+                        output.append("배열 인덱스 범위, null 참조, 형변환 오류 등을 확인해 보세요.\n");
+                        
+                        results.add(ResultDto.builder()
+                                .testNum(i+1)
+                                .input(input)
+                                .expectedResult(expectedOutput)
+                                .actualResult(output.toString())
+                                .status(ResultStatus.RUNTIME_ERROR)
+                                .build());
                         break;
                     }
-
                 } finally {
                     long endTime = System.nanoTime();
                     long endMemory = getUsedMemory();
@@ -143,22 +195,40 @@ public class JavaCompiler {
 
                     // 메모리 초과 검사
                     if (usedMemory > problem.getMemory() * 1024 * 1024) {
-                        output.append("🚫[ 메모리 초과 ]\n");
-                        results.add(ResultDto.builder().testNum(i+1).actualResult(output.toString()).status(ResultStatus.MEMORY_LIMIT).build());
+                        output.append("메모리 초과 발생: 메모리 사용량(")
+                              .append(usedMemory / (1024 * 1024))
+                              .append("MB)이 제한(")
+                              .append(problem.getMemory())
+                              .append("MB)을 초과했습니다.\n");
+                        output.append("메모리 사용량을 줄이거나, 불필요한 객체 생성을 확인해 보세요.\n");
+                        
+                        results.add(ResultDto.builder()
+                                .testNum(i+1)
+                                .input(input)
+                                .expectedResult(expectedOutput)
+                                .actualResult(output.toString())
+                                .status(ResultStatus.MEMORY_LIMIT)
+                                .build());
                         break;
                     }
                 }
 
-                output.append(result);
+                output.append("실행 결과:\n").append(result);
 
             } catch (Exception e) {
-                output.append("🚨ERROR: ").append(e.getMessage()).append("\n");
+                output.append("예상치 못한 오류: ").append(e.getMessage()).append("\n");
             }
 
-            // 통과 여부
-            // 아래의 코드는 결과값에 스페이스바가 들어가거나 엔터키가 하나 더 들어가는 등 양식에 조금의 오차가 생기면 FAIL이 되는 문제가 발생함.
-            // 양식의 사소한 오차가 있을 때에도 FAIL 로 할 것이라면 주석친 코드를 사용하면 됌.
+            // 통과 여부 확인
             boolean isPass = compareOutput(output.toString(), expectedOutput);
+            if (isPass) {
+                output.append("\n테스트 케이스 #").append(i + 1).append(" 통과!");
+            } else {
+                output.append("\n테스트 케이스 #").append(i + 1).append(" 실패");
+                output.append("\n기대 출력: ").append(expectedOutput);
+                output.append("\n실제 출력: ").append(output.toString());
+                output.append("\n출력 형식과 타입을 확인해 보세요. 공백이나 줄바꿈에 주의하세요.");
+            }
 
             results.add(ResultDto.builder()
                     .testNum(i + 1)

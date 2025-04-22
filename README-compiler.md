@@ -56,7 +56,7 @@ POST /api/compiler/submit
   "language": "java",
   "solvingTime": 300,
   "isCorrect": true,
-  "additionalInfo": "테스트 1: PASS\n실행 시간: 124.5ms\n메모리 사용량: 15.2MB\n\n",
+  "additionalInfo": "테스트 1: CORRECT\n실행 시간: 124.5ms\n메모리 사용량: 15.2MB\n\n",
   "status": "CORRECT",
   "memoryUsage": 15,
   "executionTime": 125,
@@ -104,6 +104,23 @@ POST /api/compiler/submit
 }
 ```
 
+### 컴파일러 오류 응답 (CompilerErrorResponseDto)
+
+컴파일 실패나 런타임 오류가 발생했을 때 다음과 같은 형식으로 상세 정보를 반환합니다:
+
+```json
+{
+  "status": 400,
+  "error": "Compilation Failed",
+  "message": "자바 컴파일 에러가 발생했습니다",
+  "timestamp": "2023-08-15T14:30:45",
+  "errorType": "COMPILATION_ERROR",
+  "errorDetails": "컴파일 에러 발생:\nMain.java:3: error: ';' expected\n    System.out.println(\"Hello, World!\")  // 세미콜론 누락\n                                    ^\n1 error\n\n일반적인 컴파일 오류 원인:\n  - 세미콜론(;) 누락\n  - 괄호 불일치\n  - 변수 또는 메소드 이름 오타\n  - 타입 불일치",
+  "code": "public class Main {\n  public static void main(String[] args) {\n    System.out.println(\"Hello, World!\")  // 세미콜론 누락\n  }\n}",
+  "language": "java"
+}
+```
+
 ## 지원 언어
 
 현재 컴파일러가 지원하는 언어 목록:
@@ -128,6 +145,7 @@ POST /api/compiler/submit
 2. 테스트 케이스를 실행하지 않습니다.
 3. 코드가 컴파일되고 간단한 입력("10 20")으로 실행 가능한지만 확인합니다.
 4. 결과에는 컴파일 및 실행 여부와 실행 결과가 포함됩니다.
+5. 오류 발생 시 상세한 오류 메시지와 함께 문제 해결 팁을 제공합니다.
 
 이 모드는 사용자가 코드가 기본적으로 동작하는지 빠르게 확인하고 싶을 때 유용합니다.
 
@@ -147,7 +165,7 @@ Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
 }
 ```
 
-### 테스트 모드 응답 예제
+### 테스트 모드 응답 예제 (성공)
 
 ```json
 {
@@ -162,12 +180,27 @@ Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
   "language": "java",
   "solvingTime": 0,
   "isCorrect": true,
-  "additionalInfo": "실행 결과: Hello, World!\n",
+  "additionalInfo": "자바 코드 컴파일 시작...\n컴파일 성공. 실행 시작...\n\n실행 결과:\nHello, World!\n\n테스트 완료: 코드가 정상적으로 실행되었습니다.\n",
   "status": "CORRECT",
   "memoryUsage": 0,
   "executionTime": 0,
   "createdAt": "2023-08-15T15:45:12",
   "updatedAt": "2023-08-15T15:45:12"
+}
+```
+
+### 테스트 모드 응답 예제 (컴파일 오류)
+
+```json
+{
+  "status": 400,
+  "error": "Compilation Failed",
+  "message": "자바 컴파일 에러가 발생했습니다",
+  "timestamp": "2023-08-15T14:35:12",
+  "errorType": "COMPILATION_ERROR",
+  "errorDetails": "자바 코드 컴파일 시작...\n컴파일 에러 발생:\nMain.java:3: error: ';' expected\n    System.out.println(\"Hello, World!\")  // 세미콜론 누락\n                                    ^\n1 error\n\n일반적인 컴파일 오류 원인:\n  - 세미콜론(;) 누락\n  - 괄호 불일치\n  - 변수 또는 메소드 이름 오타\n  - 타입 불일치\n\n컴파일 에러 발생: 코드를 확인해 주세요.\n세미콜론 누락, 괄호 불일치, 메서드 이름 오타 등이 흔한 원인입니다.\n",
+  "code": "public class Main {\n  public static void main(String[] args) {\n    System.out.println(\"Hello, World!\")  // 세미콜론 누락\n  }\n}",
+  "language": "java"
 }
 ```
 
@@ -204,7 +237,7 @@ Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
   "language": "java",
   "solvingTime": 300,
   "isCorrect": true,
-  "additionalInfo": "테스트 1: PASS\n실행 시간: 124.5ms\n메모리 사용량: 15.2MB\n\n",
+  "additionalInfo": "테스트 1: CORRECT\n실행 시간: 124.5ms\n메모리 사용량: 15.2MB\n\n테스트 케이스 #1 통과!",
   "status": "CORRECT",
   "memoryUsage": 15,
   "executionTime": 125,
@@ -229,27 +262,48 @@ Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
 }
 ```
 
+### 응답 예제 (오답)
+
+```json
+{
+  "status": 400,
+  "error": "Compilation Failed",
+  "message": "틀린 답안입니다",
+  "timestamp": "2023-08-15T14:38:22",
+  "errorType": "WRONG_ANSWER",
+  "errorDetails": "테스트 케이스 1:\n- 기대 출력: 30\n- 실제 출력: 35\n\n출력 형식과 타입을 확인해 보세요. 공백이나 줄바꿈에 주의하세요.",
+  "code": "a, b = map(int, input().split())\nprint(a + b + 5)",
+  "language": "python"
+}
+```
+
 ### 응답 예제 (컴파일 오류)
 
 ```json
 {
-  "id": 2,
-  "user": {
-    "id": 1,
-    "nickname": "user1",
-    "email": "user1@example.com"
-  },
-  "problemId": 100,
+  "status": 400,
+  "error": "Compilation Failed",
+  "message": "컴파일 에러가 발생했습니다",
+  "timestamp": "2023-08-15T14:35:12",
+  "errorType": "COMPILATION_ERROR",
+  "errorDetails": "컴파일 에러 발생:\nMain.java:3: error: ';' expected\n    System.out.println(\"Hello, World!\")  // 세미콜론 누락\n                                    ^\n1 error\n\n일반적인 컴파일 오류 원인:\n  - 세미콜론(;) 누락\n  - 괄호 불일치\n  - 변수 또는 메소드 이름 오타\n  - 타입 불일치",
   "code": "public class Main {\n  public static void main(String[] args) {\n    System.out.println(\"Hello, World!\")  // 세미콜론 누락\n  }\n}",
-  "language": "java",
-  "solvingTime": 180,
-  "isCorrect": false,
-  "additionalInfo": "Main.java:3: error: ';' expected\n    System.out.println(\"Hello, World!\")  // 세미콜론 누락\n                                      ^\n1 error\n",
-  "status": "COMPILATION_ERROR",
-  "memoryUsage": 0,
-  "executionTime": 0,
-  "createdAt": "2023-08-15T14:35:12",
-  "updatedAt": "2023-08-15T14:35:12"
+  "language": "java"
+}
+```
+
+### 응답 예제 (런타임 오류)
+
+```json
+{
+  "status": 400,
+  "error": "Compilation Failed",
+  "message": "런타임 에러가 발생했습니다",
+  "timestamp": "2023-08-15T14:39:45",
+  "errorType": "RUNTIME_ERROR",
+  "errorDetails": "런타임 오류 발생: java.lang.ArrayIndexOutOfBoundsException: Index 5 out of bounds for length 3\n\n배열 인덱스 범위, null 참조, 형변환 오류 등을 확인해 보세요.",
+  "code": "public class Main {\n  public static void main(String[] args) {\n    int[] array = new int[3];\n    System.out.println(array[5]);\n  }\n}",
+  "language": "java"
 }
 ```
 
@@ -268,6 +322,10 @@ Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
    - `TIMEOUT`: 실행 시간 초과
    - `MEMORY_LIMIT`: 메모리 사용량 초과 
 5. 내부 구현에서는 테스트 케이스별 결과 상태로 다음 값들이 사용됩니다:
-   - `PASS`: 테스트 케이스 통과
-   - `FAIL`: 테스트 케이스 실패 (출력 결과가 다른 경우)
-   - `ERROR`: 테스트 케이스 실행 중 오류 발생 
+   - `CORRECT`: 테스트 케이스 통과
+   - `WRONG_ANSWER`: 테스트 케이스 실패 (출력 결과가 다른 경우)
+   - `COMPILATION_ERROR`: 컴파일 오류 발생
+   - `RUNTIME_ERROR`: 실행 중 오류 발생
+   - `TIMEOUT`: 시간 초과 발생
+   - `MEMORY_LIMIT`: 메모리 제한 초과 발생
+6. 테스트 모드에서는 상세한 오류 메시지와 함께 문제 해결을 위한 팁을 제공합니다. 
