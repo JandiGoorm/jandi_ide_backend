@@ -3,6 +3,7 @@ package com.webproject.jandi_ide_backend.algorithm.problemSet.controller;
 import com.webproject.jandi_ide_backend.algorithm.problemSet.dto.ReqPostProblemSetDTO;
 import com.webproject.jandi_ide_backend.algorithm.problemSet.dto.ReqUpdateProblemSetDTO;
 import com.webproject.jandi_ide_backend.algorithm.problemSet.dto.RespProblemSetDTO;
+import com.webproject.jandi_ide_backend.algorithm.problemSet.dto.RespSpecProblemSetDTO;
 import com.webproject.jandi_ide_backend.algorithm.problemSet.service.ProblemSetService;
 import com.webproject.jandi_ide_backend.global.error.CustomErrorCodes;
 import com.webproject.jandi_ide_backend.global.error.CustomException;
@@ -57,6 +58,7 @@ public class ProblemSetController {
     }
 
     /// read
+    // 전체 문제집 조회
     @GetMapping
     @Operation(summary = "문제집 목록 조회",
             description = "사용자의 문제집 목록을 조회합니다.",
@@ -75,6 +77,16 @@ public class ProblemSetController {
     ) {
         String githubId = getGithubIdFromToken(token);
         return problemSetService.readProblemSet(githubId);
+    }
+
+    // 특정 문제집 조회
+    @GetMapping("/{problemSetId}")
+    public RespSpecProblemSetDTO readProblemSet(
+            @RequestHeader("Authorization") String token,
+            @PathVariable("problemSetId") Long problemSetId
+    ) {
+        String githubId = getGithubIdFromToken(token);
+        return problemSetService.readSpecProblemSet(problemSetId, githubId);
     }
 
     /// update

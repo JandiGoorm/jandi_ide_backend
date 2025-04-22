@@ -1,10 +1,12 @@
 package com.webproject.jandi_ide_backend.algorithm.problemSet.service;
 
+import com.webproject.jandi_ide_backend.algorithm.problem.entity.Problem;
 import com.webproject.jandi_ide_backend.algorithm.problem.repository.ProblemRepository;
 import com.webproject.jandi_ide_backend.algorithm.problemSet.Repository.ProblemSetRepository;
 import com.webproject.jandi_ide_backend.algorithm.problemSet.dto.ReqPostProblemSetDTO;
 import com.webproject.jandi_ide_backend.algorithm.problemSet.dto.ReqUpdateProblemSetDTO;
 import com.webproject.jandi_ide_backend.algorithm.problemSet.dto.RespProblemSetDTO;
+import com.webproject.jandi_ide_backend.algorithm.problemSet.dto.RespSpecProblemSetDTO;
 import com.webproject.jandi_ide_backend.algorithm.problemSet.entity.ProblemSet;
 import com.webproject.jandi_ide_backend.company.entity.Company;
 import com.webproject.jandi_ide_backend.company.repository.CompanyRepository;
@@ -18,6 +20,7 @@ import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 
 @Slf4j
 @Service
@@ -49,6 +52,15 @@ public class ProblemSetService {
         // 데이터베이스에 문제 추가 및 반환
         ProblemSet problemSet = createData(probSetDTO, user, company, problemIds);
         return new RespProblemSetDTO(problemSet);
+    }
+
+    public RespSpecProblemSetDTO readSpecProblemSet(Long probSetId, String githubId){
+        // 유저 검증
+        User user = userRepository.findByGithubId(githubId)
+                .orElseThrow(() -> new RuntimeException("유저가 존재하지 않습니다."));
+
+        // 문제집 조회
+        return readData(probSetId, user);
     }
 
     public List<RespProblemSetDTO> readProblemSet(String githubId) {
@@ -147,6 +159,27 @@ public class ProblemSetService {
         problemSet.setUpdatedAt(LocalDateTime.now(ZoneId.of("Asia/Seoul")));
         problemSetRepository.save(problemSet);
         return problemSet;
+    }
+
+    // 특정 문제집 조회
+    private RespSpecProblemSetDTO readData(Long probSetId, User user) {
+        // 문제집 찾기
+        ProblemSet problemSet = problemSetRepository.findById(probSetId)
+                .orElseThrow(() -> new RuntimeException("문제집이 존재하지 않습니다."));
+
+        // 본인의 문제집이 아니라면 에러 반환
+        if(!problemSet.getUser().equals(user)){
+            throw new RuntimeException("본인만 조회할 수 있습니다");
+        }
+
+        // 문제집의 문제 리스트 뽑기
+        List<Problem> problemList = new ArrayList<>();
+        for (Integer problemId : problemSet.getProblems()){
+            problemRepository.findById(problemId)
+                    .ifPresent(problemList::add); // 문제집의 문제들을 problemList에 추가
+        }
+
+        return new RespSpecProblemSetDTO(problemSet, problemList);
     }
 
     // 데이터베이스 수정
