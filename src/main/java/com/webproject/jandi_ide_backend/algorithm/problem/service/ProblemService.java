@@ -59,6 +59,7 @@ public class ProblemService {
 
     public ProblemResponseDTO postProblem(ProblemRequestDTO problemRequestDTO) {
         Problem problem = new Problem();
+        problem.setTitle(problemRequestDTO.getTitle());
         problem.setDescription(problemRequestDTO.getDescription());
         problem.setLevel(problemRequestDTO.getLevel());
         problem.getTags().addAll(problemRequestDTO.getTags());
@@ -77,6 +78,7 @@ public class ProblemService {
     public ProblemResponseDTO updateProblem(ProblemRequestDTO problemRequestDTO,Integer id) {
         Problem problem = problemRepository.findById(id).orElseThrow(() -> new CustomException(CustomErrorCodes.PROBLEM_NOT_FOUND));
 
+        problem.setTitle(problemRequestDTO.getTitle());
         problem.setDescription(problemRequestDTO.getDescription());
         problem.setLevel(problemRequestDTO.getLevel());
         problem.setMemory(problemRequestDTO.getMemory());
@@ -104,6 +106,7 @@ public class ProblemService {
         ProblemDetailResponseDTO detailDTO = new ProblemDetailResponseDTO();
         detailDTO.setId(problem.getId());
         detailDTO.setDescription(problem.getDescription());
+        detailDTO.setTitle(problem.getTitle());
         detailDTO.setLevel(problem.getLevel());
         detailDTO.setMemory(problem.getMemory());
         detailDTO.setTimeLimit(problem.getTimeLimit());
@@ -146,6 +149,7 @@ public class ProblemService {
         problemResponseDTO.setTags(problem.getTags());
         problemResponseDTO.setCreatedAt(problem.getCreatedAt());
         problemResponseDTO.setUpdatedAt(problem.getUpdatedAt());
+        problemResponseDTO.setTitle(problem.getTitle());
 
         return problemResponseDTO;
     }
