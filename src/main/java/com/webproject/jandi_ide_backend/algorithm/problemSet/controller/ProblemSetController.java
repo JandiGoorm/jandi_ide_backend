@@ -2,6 +2,7 @@ package com.webproject.jandi_ide_backend.algorithm.problemSet.controller;
 
 import com.webproject.jandi_ide_backend.algorithm.problemSet.dto.ReqPostProblemSetDTO;
 import com.webproject.jandi_ide_backend.algorithm.problemSet.dto.ReqUpdateProblemSetDTO;
+import com.webproject.jandi_ide_backend.algorithm.problemSet.dto.RespDetailProblemSet;
 import com.webproject.jandi_ide_backend.algorithm.problemSet.dto.RespProblemSetDTO;
 import com.webproject.jandi_ide_backend.algorithm.problemSet.service.ProblemSetService;
 import com.webproject.jandi_ide_backend.global.error.CustomErrorCodes;
@@ -71,10 +72,30 @@ public class ProblemSetController {
             )
     })
     public List<RespProblemSetDTO> readProblemSet(
-            @RequestHeader("Authorization") String token
+            @Parameter(hidden = true) @RequestHeader("Authorization") String token
     ) {
         String githubId = getGithubIdFromToken(token);
         return problemSetService.readProblemSet(githubId);
+    }
+
+    @GetMapping("/{id}")
+    @Operation(summary = "특정 문제집 조회",
+            description = "특정 문제집 목록을 조회합니다.",
+            security = { @SecurityRequirement(name = "Authorization") })
+    @ApiResponses(value = {
+            @ApiResponse(
+                    responseCode = "200",
+                    description = "조회 성공",
+                    content = @Content(
+                            schema = @Schema(implementation = RespDetailProblemSet.class)
+                    )
+            )
+    })
+    public RespDetailProblemSet readProblemSetDetail(
+            @Parameter(hidden = true) @RequestHeader("Authorization") String token,
+            @PathVariable Long id
+    ){
+        return problemSetService.readProblemSetDetail(id);
     }
 
     /// update
