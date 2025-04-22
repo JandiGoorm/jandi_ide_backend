@@ -4,6 +4,7 @@ import com.webproject.jandi_ide_backend.algorithm.problemSet.dto.ReqPostProblemS
 import com.webproject.jandi_ide_backend.algorithm.problemSet.dto.ReqUpdateProblemSetDTO;
 import com.webproject.jandi_ide_backend.algorithm.problemSet.dto.RespDetailProblemSet;
 import com.webproject.jandi_ide_backend.algorithm.problemSet.dto.RespProblemSetDTO;
+import com.webproject.jandi_ide_backend.algorithm.problemSet.dto.RespSpecProblemSetDTO;
 import com.webproject.jandi_ide_backend.algorithm.problemSet.service.ProblemSetService;
 import com.webproject.jandi_ide_backend.global.error.CustomErrorCodes;
 import com.webproject.jandi_ide_backend.global.error.CustomException;
@@ -58,6 +59,7 @@ public class ProblemSetController {
     }
 
     /// read
+    // 전체 문제집 조회
     @GetMapping
     @Operation(summary = "문제집 목록 조회",
             description = "사용자의 문제집 목록을 조회합니다.",
