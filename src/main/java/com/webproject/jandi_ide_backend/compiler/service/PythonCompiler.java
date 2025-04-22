@@ -35,23 +35,41 @@ public class PythonCompiler {
                 try (FileWriter writer = new FileWriter(pythonFile)) {
                     writer.write(code);
                 }
+                log.debug("Python code written to file: {}", code);
 
-                // 실행 파일 실행
-                String pythonInterpreter = "python3";
-                ProcessBuilder compilePb = new ProcessBuilder(pythonInterpreter, pythonFile.getAbsolutePath());
-                compilePb.redirectErrorStream(true); // 표준 에러를 표준 출력으로 리다이렉트
-                Process runProcess = compilePb.start();
+                // 여러 Python 인터프리터 명령어를 순차적으로 시도
+                String[] pythonInterpreters = {"python3", "python", "py"};
+                ProcessBuilder compilePb = null;
+                Process runProcess = null;
+                boolean started = false;
+                
+                for (String interpreter : pythonInterpreters) {
+                    try {
+                        compilePb = new ProcessBuilder(interpreter, pythonFile.getAbsolutePath());
+                        compilePb.redirectErrorStream(true);
+                        log.debug("Trying Python interpreter: {}", interpreter);
+                        runProcess = compilePb.start();
+                        started = true;
+                        log.debug("Successfully started Python with: {}", interpreter);
+                        break;
+                    } catch (IOException e) {
+                        log.warn("Failed to start Python with interpreter {}: {}", interpreter, e.getMessage());
+                    }
+                }
+                
+                if (!started || runProcess == null) {
+                    throw new IOException("Unable to start any Python interpreter. Tried: " + 
+                                         String.join(", ", pythonInterpreters));
+                }
 
                 // 테스트 케이스 입력 전달
                 OutputStream stdin = runProcess.getOutputStream();
                 BufferedWriter writer = new BufferedWriter(new OutputStreamWriter(stdin));
                 
-                // 콤마로 구분된 입력을 처리하도록 수정
-                String[] testcaseInputs = input.split(",");
-                for (String inputLine : testcaseInputs) {
-                    writer.write(inputLine.trim());
-                    writer.newLine();
-                }
+                log.debug("Test case input: {}", input);
+                // 텍스트 파일 입력 방식으로 변경 (쉼표는 그대로 유지)
+                writer.write(input);
+                writer.newLine();
                 writer.flush();
                 writer.close(); // 입력 스트림을 닫아 프로세스가 더 이상 입력을 기다리지 않게 함
 

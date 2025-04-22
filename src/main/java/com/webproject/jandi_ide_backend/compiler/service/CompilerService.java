@@ -406,14 +406,38 @@ public class CompilerService {
                 writer.write(code);
             }
             
-            // 실행 프로세스 시작
-            ProcessBuilder runPb = new ProcessBuilder("python3", pythonFile.getAbsolutePath());
-            Process runProcess = runPb.start();
+            // 여러 Python 인터프리터 명령어를 순차적으로 시도
+            String[] pythonInterpreters = {"python3", "python", "py"};
+            ProcessBuilder runPb = null;
+            Process runProcess = null;
+            boolean started = false;
+            
+            for (String interpreter : pythonInterpreters) {
+                try {
+                    runPb = new ProcessBuilder(interpreter, pythonFile.getAbsolutePath());
+                    runPb.redirectErrorStream(true);
+                    log.debug("Trying Python interpreter: {}", interpreter);
+                    runProcess = runPb.start();
+                    started = true;
+                    log.debug("Successfully started Python with: {}", interpreter);
+                    break;
+                } catch (IOException e) {
+                    log.warn("Failed to start Python with interpreter {}: {}", interpreter, e.getMessage());
+                }
+            }
+            
+            if (!started || runProcess == null) {
+                throw new IOException("Unable to start any Python interpreter. Tried: " + 
+                                      String.join(", ", pythonInterpreters));
+            }
+            
+            // final로 runProcess 복사
+            final Process finalRunProcess = runProcess;
             
             // 입력 데이터 전달
             if (input != null && !input.isEmpty()) {
-                try (BufferedWriter processInput = new BufferedWriter(new OutputStreamWriter(runProcess.getOutputStream()))) {
-                    processInput.write(input);
+                try (BufferedWriter processInput = new BufferedWriter(new OutputStreamWriter(finalRunProcess.getOutputStream()))) {
+                    processInput.write(input); // 직접 전체 입력을 한번에 전달
                     processInput.newLine();
                     processInput.flush();
                 }
@@ -423,7 +447,7 @@ public class CompilerService {
             ExecutorService executor = Executors.newSingleThreadExecutor();
             Future<String> future = executor.submit(() -> {
                 StringBuilder result = new StringBuilder();
-                try (BufferedReader reader = new BufferedReader(new InputStreamReader(runProcess.getInputStream()))) {
+                try (BufferedReader reader = new BufferedReader(new InputStreamReader(finalRunProcess.getInputStream()))) {
                     String line;
                     while ((line = reader.readLine()) != null) {
                         result.append(line).append("\n");
