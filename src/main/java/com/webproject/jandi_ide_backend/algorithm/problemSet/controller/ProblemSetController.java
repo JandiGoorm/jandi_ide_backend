@@ -79,16 +79,6 @@ public class ProblemSetController {
         return problemSetService.readProblemSet(githubId);
     }
 
-    // 특정 문제집 조회
-    @GetMapping("/{problemSetId}")
-    public RespSpecProblemSetDTO readProblemSet(
-            @RequestHeader("Authorization") String token,
-            @PathVariable("problemSetId") Long problemSetId
-    ) {
-        String githubId = getGithubIdFromToken(token);
-        return problemSetService.readSpecProblemSet(problemSetId, githubId);
-    }
-
     /// update
     @PutMapping("{problemSetId}")
     @Operation(summary = "문제집 수정",
