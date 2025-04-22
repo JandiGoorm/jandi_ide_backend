@@ -57,12 +57,13 @@ public class UserTechStackService {
         }
 
         // 새 선호 기업 정보로 추가
+        List<UserTechStack> newUserTechStackList = new ArrayList<>();
         for (TechStack techStack : newTechStackList) {
             UserTechStack newData = createData(user, techStack);
-            favoriteTechStackList.add(newData);
+            newUserTechStackList.add(newData);
         }
 
-        return favoriteTechStackList.stream()
+        return newUserTechStackList.stream()
                 .map(favoriteTechStack -> new RespTechStackDTO(favoriteTechStack.getTechStack()))
                 .toList();
     }

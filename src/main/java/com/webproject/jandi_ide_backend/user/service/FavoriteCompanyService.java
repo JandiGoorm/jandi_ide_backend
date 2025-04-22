@@ -57,12 +57,13 @@ public class FavoriteCompanyService {
         }
 
         // 새 선호 기업 정보로 추가
+        List<UserFavoriteCompany> newFavoriteCompanyList = new ArrayList<>();
         for (Company company : newCompanyList) {
             UserFavoriteCompany newData = createData(user, company);
-            favoriteCompanyList.add(newData);
+            newFavoriteCompanyList.add(newData);
         }
 
-        return favoriteCompanyList.stream()
+        return newFavoriteCompanyList.stream()
                 .map(favoriteCompany -> new RespFavoriteCompanyDTO(favoriteCompany.getCompany()))
                 .toList();
     }
