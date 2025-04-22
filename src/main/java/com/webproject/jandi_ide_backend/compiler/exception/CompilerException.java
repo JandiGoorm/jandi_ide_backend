@@ -48,4 +48,14 @@ public class CompilerException extends RuntimeException {
         this.code = code;
         this.language = language;
     }
+    
+    /**
+     * 간소화된 컴파일러 예외 생성자
+     * 
+     * @param message 기본 오류 메시지
+     * @param errorType 오류 유형 (SolutionStatus 열거형)
+     */
+    public CompilerException(String message, SolutionStatus errorType) {
+        this(message, errorType, message, "", "");
+    }
 } 
