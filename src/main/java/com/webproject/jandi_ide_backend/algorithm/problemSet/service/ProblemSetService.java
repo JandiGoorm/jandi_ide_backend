@@ -3,8 +3,8 @@ package com.webproject.jandi_ide_backend.algorithm.problemSet.service;
 import com.webproject.jandi_ide_backend.algorithm.problem.repository.ProblemRepository;
 import com.webproject.jandi_ide_backend.algorithm.problemSet.Repository.ProblemSetRepository;
 import com.webproject.jandi_ide_backend.algorithm.problemSet.dto.ReqPostProblemSetDTO;
-import com.webproject.jandi_ide_backend.algorithm.problemSet.dto.RespProblemSetDTO;
 import com.webproject.jandi_ide_backend.algorithm.problemSet.dto.ReqUpdateProblemSetDTO;
+import com.webproject.jandi_ide_backend.algorithm.problemSet.dto.RespProblemSetDTO;
 import com.webproject.jandi_ide_backend.algorithm.problemSet.entity.ProblemSet;
 import com.webproject.jandi_ide_backend.company.entity.Company;
 import com.webproject.jandi_ide_backend.company.repository.CompanyRepository;
@@ -29,7 +29,7 @@ public class ProblemSetService {
     private final CompanyRepository companyRepository;
 
     /// API
-    public Object createProblemSet(ReqPostProblemSetDTO probSetDTO, String githubId) {
+    public RespProblemSetDTO createProblemSet(ReqPostProblemSetDTO probSetDTO, String githubId) {
         // 유저 검증
         User user = userRepository.findByGithubId(githubId)
                 .orElseThrow(() -> new RuntimeException("유저가 존재하지 않습니다."));
@@ -63,7 +63,7 @@ public class ProblemSetService {
                 .toList();
     }
 
-    public Object updateProblemSet(Long problemSetId, ReqUpdateProblemSetDTO probSetDTO, String githubId) {
+    public RespProblemSetDTO updateProblemSet(Long problemSetId, ReqUpdateProblemSetDTO probSetDTO, String githubId) {
         // 유저 검증
         User user = userRepository.findByGithubId(githubId)
                 .orElseThrow(() -> new RuntimeException("유저가 존재하지 않습니다."));
