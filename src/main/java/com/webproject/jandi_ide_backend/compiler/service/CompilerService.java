@@ -179,8 +179,8 @@ public class CompilerService {
         String code = submissionDto.getCode();
         String language = submissionDto.getLanguage();
         
-        // 기본 실행을 위한 간단한 입력값 생성
-        String simpleInput = "10 20";
+        // 기본 실행을 위한 간단한 입력값 생성 - 콤마로 구분된 입력으로 변경
+        String simpleInput = "1,2";
         
         // 결과를 저장할 객체
         StringBuilder output = new StringBuilder();
