@@ -52,7 +52,7 @@ public class CppCompiler {
                     while ((errorLine = errorReader.readLine()) != null) {
                         output.append(errorLine).append("\n");
                     }
-                    results.add(ResultDto.builder().actualResult(output.toString()).status(ResultStatus.ERROR).build());
+                    results.add(ResultDto.builder().actualResult(output.toString()).status(ResultStatus.COMPILATION_ERROR).build());
                     cppFile.delete();
                     continue;
                 }
@@ -97,7 +97,7 @@ public class CppCompiler {
                     runProcess.destroy();
                     future.cancel(true);  // Future 강제 취소
                     result = "⌛️[ 시간 초과 ]\n";
-                    results.add(ResultDto.builder().testNum(i+1).actualResult(result).status(ResultStatus.FAIL).build());
+                    results.add(ResultDto.builder().testNum(i+1).actualResult(result).status(ResultStatus.TIMEOUT).build());
                     break;
 
                 } catch (ExecutionException e) {
@@ -105,13 +105,13 @@ public class CppCompiler {
                         runProcess.destroy();
                         future.cancel(true);  // Future 강제 취소
                         result = "🚫[ 메모리 초과 ]\n";
-                        results.add(ResultDto.builder().testNum(i+1).actualResult(result).status(ResultStatus.FAIL).build());
+                        results.add(ResultDto.builder().testNum(i+1).actualResult(result).status(ResultStatus.MEMORY_LIMIT).build());
                         break;
 
                     } else {
                         runProcess.destroy();
                         result = "🚨[ 오류 ]\n";
-                        results.add(ResultDto.builder().testNum(i+1).actualResult(result).status(ResultStatus.ERROR).build());
+                        results.add(ResultDto.builder().testNum(i+1).actualResult(result).status(ResultStatus.RUNTIME_ERROR).build());
                         break;
                     }
 
@@ -132,7 +132,7 @@ public class CppCompiler {
                     // 메모리 초과 검사
                     if (usedMemory > problem.getMemory() * 1024 * 1024) {
                         output.append("🚫[ 메모리 초과 ]\n");
-                        results.add(ResultDto.builder().testNum(i+1).actualResult(output.toString()).status(ResultStatus.FAIL).build());
+                        results.add(ResultDto.builder().testNum(i+1).actualResult(output.toString()).status(ResultStatus.MEMORY_LIMIT).build());
                         break;
                     }
                 }
@@ -153,7 +153,7 @@ public class CppCompiler {
                     .actualResult(output.toString())
                     .executionTime(time)
                     .usedMemory(memory)
-                    .status(isPass ? ResultStatus.PASS : ResultStatus.FAIL)
+                    .status(isPass ? ResultStatus.CORRECT : ResultStatus.WRONG_ANSWER)
                     .build();
 
             results.add(result);
