@@ -1,6 +1,7 @@
 package com.webproject.jandi_ide_backend.algorithm.problemSet.dto;
 
 import com.webproject.jandi_ide_backend.algorithm.problem.dto.ProblemDetailResponseDTO;
+import com.webproject.jandi_ide_backend.algorithm.problemSet.entity.ProblemSet;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -17,6 +18,7 @@ public class RespDetailProblemSet {
     private Boolean isPrevious;
     private Integer solvingTimeInMinutes;
     private String description;
+    private ProblemSet.Language language;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
     private List<ProblemDetailResponseDTO> problems;

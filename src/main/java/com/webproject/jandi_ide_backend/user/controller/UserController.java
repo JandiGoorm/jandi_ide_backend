@@ -7,18 +7,17 @@ import com.webproject.jandi_ide_backend.project.dto.ProjectResponseDTO;
 import com.webproject.jandi_ide_backend.project.service.ProjectService;
 import com.webproject.jandi_ide_backend.user.dto.*;
 import com.webproject.jandi_ide_backend.user.service.UserService;
+import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.ArraySchema;
-import io.swagger.v3.oas.annotations.security.SecurityRequirement;
-import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.*;
-
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
-import io.swagger.v3.oas.annotations.Operation;
-import io.swagger.v3.oas.annotations.tags.Tag;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
+import io.swagger.v3.oas.annotations.tags.Tag;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
@@ -104,6 +103,21 @@ public class UserController {
             @RequestBody UserUpdateDTO userUpdateDTO) {
         UserResponseDTO userResponse = userService.updateUser(token, id, userUpdateDTO);
         return ResponseEntity.ok(userResponse);
+    }
+
+    @DeleteMapping("/{id}")
+    @Operation(summary = "회원 탈퇴", description = "회원 탈퇴합니다.", security = { @SecurityRequirement(name = "Authorization") })
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "탈퇴 성공",
+                    content = @Content(schema = @Schema(implementation = String.class))
+            ),
+    })
+    public ResponseEntity<String> deleteUser(
+            @Parameter(hidden = true) @RequestHeader("Authorization") String token,
+            @PathVariable Integer id
+    ){
+        userService.deleteUser(token, id);
+        return ResponseEntity.ok("회원 탈퇴 성공");
     }
 
     @GetMapping("/{id}")

@@ -81,6 +81,7 @@ public class ProblemSetService {
                 problemSet.getIsPrevious(),
                 problemSet.getSolvingTimeInMinutes(),
                 problemSet.getDescription(),
+                problemSet.getLanguage(),
                 problemSet.getCreatedAt(),
                 problemSet.getUpdatedAt(),
                 problems
@@ -200,6 +201,7 @@ public class ProblemSetService {
         problemSet.setSolvingTimeInMinutes(probSetDTO.getMinutes());
         problemSet.setUser(user);
         problemSet.setCompany(company);
+        problemSet.setLanguage(probSetDTO.getLanguage());
         problemSet.setCreatedAt(LocalDateTime.now(ZoneId.of("Asia/Seoul")));
         problemSet.setUpdatedAt(LocalDateTime.now(ZoneId.of("Asia/Seoul")));
         problemSetRepository.save(problemSet);

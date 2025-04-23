@@ -13,6 +13,7 @@ public class RespProblemSetDTO {
     private final Integer minutes;
     private final String title;
     private final String company;
+    private final ProblemSet.Language language;
 
     public RespProblemSetDTO(ProblemSet problemSet) {
         this.id = problemSet.getId();
@@ -22,6 +23,7 @@ public class RespProblemSetDTO {
         this.title = problemSet.getTitle();
         this.company = (problemSet.getCompany() == null) ?
                 "" : problemSet.getCompany().getCompanyName();
+        this.language = problemSet.getLanguage();
     }
 
     public static RespProblemSetDTO fromEntity(ProblemSet problemSet) {

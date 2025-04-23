@@ -4,6 +4,7 @@ import com.webproject.jandi_ide_backend.user.entity.User;
 import lombok.Data;
 
 import java.time.LocalDateTime;
+import java.util.List;
 
 @Data
 public class UserResponseDTO {
@@ -15,6 +16,8 @@ public class UserResponseDTO {
     private String nickName;
     private String githubUsername;
     private User.UserRole Role;
+    private List<String> techStacks;
+    private List<String> favoriteCompanies;
 
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;

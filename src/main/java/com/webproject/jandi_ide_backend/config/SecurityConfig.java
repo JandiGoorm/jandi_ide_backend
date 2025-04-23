@@ -5,19 +5,18 @@ import com.webproject.jandi_ide_backend.security.JwtTokenProvider;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.HttpMethod;
+import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.web.SecurityFilterChain;
-import org.springframework.security.config.annotation.web.builders.HttpSecurity;
+import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+import org.springframework.security.web.util.matcher.AntPathRequestMatcher;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
-import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
-import org.springframework.http.HttpMethod;
-import org.springframework.security.web.util.matcher.AntPathRequestMatcher;
 
 import java.util.Arrays;
-import java.util.List;
 
 @Configuration
 @EnableWebSecurity
@@ -48,12 +47,12 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
                         // 채팅 관련 요청은 인증 필요
                         .requestMatchers("/chat/**").authenticated()
+                        // POST, PUT, DELETE 요청은 ADMIN 권한 필요
+                        .requestMatchers(HttpMethod.POST, "/api/companies/**","/api/job-postings/**","/api/schedules/**","/api/problems/**","/api/test-cases/**").hasAnyRole("STAFF", "ADMIN")
+                        .requestMatchers(HttpMethod.PUT, "/api/companies/**","/api/job-postings/**","/api/schedules/**","/api/problems/**","/api/test-cases/**").hasAnyRole("STAFF", "ADMIN")
+                        .requestMatchers(HttpMethod.DELETE, "/api/companies/**","/api/job-postings/**","/api/schedules/**","/api/problems/**","/api/test-cases/**").hasAnyRole("STAFF", "ADMIN")
                         // 나머지 API 요청은 인증 필요
                         .requestMatchers("/api/**").authenticated()
-                        // GET요청은 직위 상관 없이 허용
-                        .requestMatchers(HttpMethod.GET, "/api/companies/**").authenticated()
-                        // POST, PUT, DELETE 요청은 ADMIN 권한 필요
-                        .requestMatchers("/api/companies/**").hasAnyRole("STAFF","ADMIN")
                         // 그 외 모든 요청 허용
                         .anyRequest().permitAll()
                 )
