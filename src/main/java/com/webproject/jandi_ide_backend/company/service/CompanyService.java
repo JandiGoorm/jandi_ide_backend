@@ -163,7 +163,7 @@ public class CompanyService {
         responseDTO.setProgrammingLanguages(company.getProgrammingLanguages());
         responseDTO.setCreatedAt(company.getCreatedAt());
         responseDTO.setUpdatedAt(company.getUpdatedAt());
-
+        responseDTO.setProfileUrl(company.getProfileUrl());
         return responseDTO;
     }
 
