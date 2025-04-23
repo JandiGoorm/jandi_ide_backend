@@ -2,21 +2,20 @@ package com.webproject.jandi_ide_backend.user.service;
 
 import com.webproject.jandi_ide_backend.global.error.CustomErrorCodes;
 import com.webproject.jandi_ide_backend.global.error.CustomException;
-import com.webproject.jandi_ide_backend.project.repository.ProjectRepository;
 import com.webproject.jandi_ide_backend.security.JwtTokenProvider;
 import com.webproject.jandi_ide_backend.security.TokenInfo;
 import com.webproject.jandi_ide_backend.user.dto.*;
 import com.webproject.jandi_ide_backend.user.entity.User;
 import com.webproject.jandi_ide_backend.user.repository.UserRepository;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.*;
 import org.springframework.stereotype.Service;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
-import org.springframework.web.client.RestTemplate;
-import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.client.HttpClientErrorException;
-import lombok.RequiredArgsConstructor;
+import org.springframework.web.client.RestTemplate;
 
 import java.time.LocalDateTime;
 import java.util.*;
@@ -390,6 +389,16 @@ public class UserService {
         userResponse.setUpdatedAt(user.getUpdatedAt());
         userResponse.setGithubUsername(user.getGithubUsername());
         userResponse.setRole(user.getRole());
+
+        List<String> techStackNames = user.getUserTechStacks().stream()
+                .map(userTechStack -> userTechStack.getTechStack().getName())
+                .toList();
+        userResponse.setTechStacks(techStackNames);
+
+        List<String> favoriteCompanyNames = user.getFavoriteCompanies().stream()
+                .map(userFavoriteCompany -> userFavoriteCompany.getCompany().getCompanyName())
+                .toList();
+        userResponse.setFavoriteCompanies(favoriteCompanyNames);
 
         return userResponse;
     }
