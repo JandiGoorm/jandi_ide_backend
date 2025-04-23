@@ -1,12 +1,18 @@
 package com.webproject.jandi_ide_backend.user.entity;
 
-import java.time.LocalDateTime;
+import com.webproject.jandi_ide_backend.algorithm.problemSet.entity.ProblemSet;
+import com.webproject.jandi_ide_backend.algorithm.solution.entity.Solution;
+import com.webproject.jandi_ide_backend.project.entity.Project;
 import jakarta.persistence.*;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
-import lombok.Getter;
-import lombok.Setter;
-import lombok.NoArgsConstructor;
+
+import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
 
 // 사용자(User) 정보를 표현하는 엔티티 클래스
 @Entity
@@ -47,6 +53,21 @@ public class User {
     // 사용자의 이메일 주소를 저장 (유일해야 함)
     @Column(nullable = false, unique = true)
     private String email;
+
+    @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<UserTechStack> userTechStacks = new ArrayList<>();
+
+    @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<UserFavoriteCompany> favoriteCompanies = new ArrayList<>();
+
+    @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<Solution> solutions = new ArrayList<>();
+
+    @OneToMany(mappedBy = "owner", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<Project> projects = new ArrayList<>();
+
+    @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<ProblemSet> problemSets = new ArrayList<>();
 
     @CreationTimestamp
     @Column(nullable = false, updatable = false)

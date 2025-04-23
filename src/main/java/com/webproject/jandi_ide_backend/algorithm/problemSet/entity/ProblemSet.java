@@ -49,6 +49,10 @@ public class ProblemSet {
     @Column(name = "description")
     private String description;
 
+    @Enumerated(EnumType.STRING)
+    @Column(name = "language", nullable = false)
+    private Language language;
+
     // 문제집 생성 사용자와의 관계 추가
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id", nullable = false)
@@ -77,5 +81,9 @@ public class ProblemSet {
     @PreUpdate
     protected void onUpdate() {
         updatedAt = LocalDateTime.now();
+    }
+
+    public enum Language{
+        JAVA,PYTHON,CPP
     }
 }
