@@ -229,15 +229,10 @@ public class UserService {
         String githubToken = tokenInfo.getGithubToken();
 
         // 1. 유저 정보를 가져옵니다.
-        User user = userRepository.findByGithubId(githubId)
+        User user = userRepository.findByIdAndGithubId(id,githubId)
                 .orElseThrow(() -> new CustomException(CustomErrorCodes.USER_NOT_FOUND));
 
-        // 2. 자신의 정보 인지 확인합니다.
-        if (!id.equals(user.getId())) {
-            throw new CustomException(CustomErrorCodes.PERMISSION_DENIED);
-        }
-
-        // 3. 깃헙 API를 통해 유저의 레포지토리 정보를 가져옵니다.
+        // 2. 깃헙 API를 통해 유저의 레포지토리 정보를 가져옵니다.
         String reposUrl = String.format("https://api.github.com/users/%s/repos", user.getGithubUsername());
         RestTemplate restTemplate = new RestTemplate();
         HttpHeaders headers = new HttpHeaders();
@@ -274,7 +269,7 @@ public class UserService {
             return new UserRepoDTO[0];
         }
 
-        // 4. 레포지토리 정보에서 필요한 데이터만 추출하여 DTO로 변환합니다.
+        // 3. 레포지토리 정보에서 필요한 데이터만 추출하여 DTO 로 변환합니다.
         UserRepoDTO[] userRepoDTOs = Arrays.stream(repos)
                 .filter(repo -> !(Boolean) repo.get("private")) // 공개 레포지토리만 필터링
                 .map(repo -> {
@@ -333,29 +328,44 @@ public class UserService {
         String githubId = tokenInfo.getGithubId();
 
         // 1. 유저 정보를 가져옵니다.
-        User user = userRepository.findByGithubId(githubId)
+        User user = userRepository.findByIdAndGithubId(id,githubId)
                 .orElseThrow(() -> new CustomException(CustomErrorCodes.USER_NOT_FOUND));
 
-        // 2. 자신의 정보 인지 확인합니다.
-        if (!id.equals(user.getId())) {
-            throw new CustomException(CustomErrorCodes.PERMISSION_DENIED);
-        }
-
-        // 3. 유저 정보 업데이트
+        // 2. 유저 정보 업데이트
         user.setProfileImage(userUpdateDTO.getProfileImage());
         user.setEmail(userUpdateDTO.getEmail());
         user.setIntroduction(userUpdateDTO.getIntroduction());
         user.setNickname(userUpdateDTO.getNickname());
 
-        // 4. DB에 저장
+        // 3. DB에 저장
         try{
             userRepository.save(user);
         }catch (Exception e){
             throw new CustomException(CustomErrorCodes.DB_OPERATION_FAILED);
         }
 
-        // 5. DTO 변환
+        // 4. DTO 변환
         return convertToDto(user);
+    }
+
+    /**
+     * 유저 탈퇴
+     * @param token: header 로 받은 accessToken
+     * @param id: 유저 id
+     */
+    public void deleteUser(String token, Integer id){
+        TokenInfo tokenInfo = jwtTokenProvider.decodeToken(token.replace("Bearer ", "").trim());
+        String githubId = tokenInfo.getGithubId();
+
+        // 1. 유저 정보를 가져옵니다.
+        User user = userRepository.findByIdAndGithubId(id,githubId)
+                .orElseThrow(() -> new CustomException(CustomErrorCodes.USER_NOT_FOUND));
+
+        try{
+            userRepository.delete(user);
+        }catch (Exception e){
+            throw new CustomException(CustomErrorCodes.DB_OPERATION_FAILED);
+        }
     }
 
     /**
