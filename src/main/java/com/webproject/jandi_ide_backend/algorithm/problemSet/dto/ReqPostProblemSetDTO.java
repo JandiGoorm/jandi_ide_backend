@@ -1,5 +1,6 @@
 package com.webproject.jandi_ide_backend.algorithm.problemSet.dto;
 
+import com.webproject.jandi_ide_backend.algorithm.problemSet.entity.ProblemSet;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.NonNull;
@@ -16,6 +17,9 @@ public class ReqPostProblemSetDTO {
     private final Integer minutes;
     @NonNull
     private final String title;
+
+    @NonNull
+    private final ProblemSet.Language language;
 
     //선택적
     private List<Integer> problemIds; //커스텀일 때만 필수
