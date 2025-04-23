@@ -33,9 +33,9 @@ public class TechStackController {
             @Parameter(hidden = true) @RequestHeader("Authorization") String token,
             @RequestBody ReqTechStackDTO reqDTO
     ) {
-        // 새 기업 리스트가 없다면 에러 반환
+        // 새 언어 리스트가 없다면 에러 반환
         if (reqDTO == null || reqDTO.getTechStackNameList() == null || reqDTO.getTechStackNameList().isEmpty())
-            throw new RuntimeException("선택된 기업이 없습니다");
+            throw new RuntimeException("선택된 언어가 없습니다");
 
         String githubId = getGithubIdFromToken(token);
         return userTechStackService.putFavoriteTechStack(githubId, reqDTO.getTechStackNameList());
