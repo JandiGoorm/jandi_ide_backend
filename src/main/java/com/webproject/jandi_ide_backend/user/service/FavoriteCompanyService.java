@@ -14,6 +14,7 @@ import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 
 @Service
 @RequiredArgsConstructor
@@ -25,8 +26,7 @@ public class FavoriteCompanyService {
     // 전체 선호 기업 리스트 조회
     public List<RespFavoriteCompanyDTO> readFavoriteCompany(String githubId) {
         // 유저 검증
-        User user = userRepository.findByGithubId(githubId)
-                .orElseThrow(() -> new RuntimeException("유저가 존재하지 않습니다."));
+        User user = findUserByGithubId(githubId);
 
         List<UserFavoriteCompany> favoriteCompanyList = userFavoriteCompanyRepository.findAllByUser(user);
         return favoriteCompanyList.stream()
@@ -34,11 +34,10 @@ public class FavoriteCompanyService {
                 .toList();
     }
 
-    // 이전의 선호 기업 정보를 지우고 새 정보로 대체
-    public List<RespFavoriteCompanyDTO> putFavoriteCompany(String githubId, List<String> companyNameList) {
+    // 선호 기업 추가 - 첫 로그인용
+    public List<RespFavoriteCompanyDTO> postFavoriteCompany(String githubId, List<String> companyNameList) {
         // 유저 검증
-        User user = userRepository.findByGithubId(githubId)
-                .orElseThrow(() -> new RuntimeException("유저가 존재하지 않습니다."));
+        User user = findUserByGithubId(githubId);
 
         // 새 기업 리스트 매핑
         List<Company> newCompanyList = new ArrayList<>();
@@ -50,7 +49,7 @@ public class FavoriteCompanyService {
         if (newCompanyList.isEmpty())
             throw new RuntimeException("잘못된 기업을 선택하셨습니다.");
 
-        // 기존 선호 기업 정보 제거
+        // 기존 선호 기업 정보 제거 - 혹시 모르니까...?
         List<UserFavoriteCompany> favoriteCompanyList = userFavoriteCompanyRepository.findAllByUser(user);
         if (!favoriteCompanyList.isEmpty()) {
             userFavoriteCompanyRepository.deleteAll(favoriteCompanyList);
@@ -66,6 +65,41 @@ public class FavoriteCompanyService {
         return newFavoriteCompanyList.stream()
                 .map(favoriteCompany -> new RespFavoriteCompanyDTO(favoriteCompany.getCompany()))
                 .toList();
+    }
+
+    public boolean putFavoriteCompany(String githubId, Integer companyId) {
+        // 유저 및 회사 검증
+        User user = findUserByGithubId(githubId);
+        Company company = findCompanyById(companyId);
+
+        if (userFavoriteCompanyRepository.findByUserIdAndCompanyId(user.getId(), companyId).isPresent()) {
+            throw new RuntimeException("이미 선호기업으로 등록되어 있습니다.");
+        }
+
+        createData(user, company);
+        return true;
+    }
+
+    public boolean deleteFavoriteCompany(String githubId, Integer companyId) {
+        // 유저 및 회사 검증
+        User user = findUserByGithubId(githubId);
+        Company company = findCompanyById(companyId);
+
+        UserFavoriteCompany userFavoriteCompany = userFavoriteCompanyRepository.findByUserIdAndCompanyId(user.getId(), companyId)
+                .orElseThrow(() -> new RuntimeException("선호기업에 등록되지 않은 기업입니다."));
+        userFavoriteCompanyRepository.delete(userFavoriteCompany);
+        return true;
+    }
+
+    /// 존재 여부를 검증할 함수
+    private User findUserByGithubId(String githubId) {
+        return userRepository.findByGithubId(githubId)
+                .orElseThrow(() -> new RuntimeException("유저가 존재하지 않습니다."));
+    }
+
+    private Company findCompanyById(Integer companyId) {
+        return companyRepository.findById(companyId)
+                .orElseThrow(()-> new RuntimeException("해당 회사가 존재하지 않습니다"));
     }
 
     /// 실제 DB CRUD
