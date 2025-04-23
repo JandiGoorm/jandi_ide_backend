@@ -19,6 +19,7 @@ import org.springframework.web.client.RestTemplate;
 import org.springframework.web.util.UriComponentsBuilder;
 
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -62,7 +63,7 @@ public class ProjectService {
      * @param id: 프로젝트 id
      * @return 레포지토리 트리 정보
      */
-    public Object getProject(String token,Integer id) {
+    public Map<String,Object> getProject(String token,Integer id) {
         TokenInfo tokenInfo = jwtTokenProvider.decodeToken(token.replace("Bearer ", "").trim());
         String githubToken = tokenInfo.getGithubToken();
 
@@ -72,7 +73,13 @@ public class ProjectService {
         String defaultBranch = getDefaultBranch(githubToken, githubUsername, githubReponame);
         log.info("Default branch: {}", defaultBranch);
 
-        return getRepoTrees(defaultBranch,githubUsername,githubReponame,githubToken);
+
+        Object repoTrees = getRepoTrees(defaultBranch,githubUsername,githubReponame,githubToken);
+        Map<String, Object> result = new HashMap<>();
+        result.put("name", githubReponame);
+        result.put("treeData", repoTrees);
+
+        return result;
     }
 
     /**
@@ -208,14 +215,14 @@ public class ProjectService {
         // 1. 해당 레포 특정 조회 (default branch 를 가져옴)
         try{
             RestTemplate restTemplate = new RestTemplate();
-//            HttpHeaders headers = new HttpHeaders();
-//            headers.setBearerAuth(githubToken);
-//            headers.setAccept(Collections.singletonList(MediaType.APPLICATION_JSON));
-//            HttpEntity<Void> request = new HttpEntity(headers);
+            HttpHeaders headers = new HttpHeaders();
+            headers.setBearerAuth(githubToken);
+            headers.setAccept(Collections.singletonList(MediaType.APPLICATION_JSON));
+            HttpEntity<Void> request = new HttpEntity(headers);
             ResponseEntity<Map> response = restTemplate.exchange(
                     repoUrl,
                     HttpMethod.GET,
-                    null,
+                    request,
                     Map.class
             );
 
@@ -242,14 +249,14 @@ public class ProjectService {
                 .toUriString();
         log.info("branchUrl:{}", branchUrl);
         RestTemplate restTemplate = new RestTemplate();
-//        HttpHeaders headers = new HttpHeaders();
-//        headers.setBearerAuth(githubToken);
-//        headers.setAccept(Collections.singletonList(MediaType.APPLICATION_JSON));
-//        HttpEntity<Void> request = new HttpEntity<>(headers);
+        HttpHeaders headers = new HttpHeaders();
+        headers.setBearerAuth(githubToken);
+        headers.setAccept(Collections.singletonList(MediaType.APPLICATION_JSON));
+        HttpEntity<Void> request = new HttpEntity<>(headers);
         ResponseEntity<Map> response = restTemplate.exchange(
                 branchUrl,
                 HttpMethod.GET,
-                null,
+                request,
                 Map.class
         );
 
@@ -260,14 +267,14 @@ public class ProjectService {
         String blobUrl = "https://api.github.com/repos/" + githubUsername + "/" + githubReponame + "/git/blobs/" + sha;
 
         RestTemplate restTemplate = new RestTemplate();
-//        HttpHeaders headers = new HttpHeaders();
-//        headers.setBearerAuth(githubToken);
-//        headers.setAccept(Collections.singletonList(MediaType.APPLICATION_JSON));
-//        HttpEntity<Void> request = new HttpEntity<>(headers);
+        HttpHeaders headers = new HttpHeaders();
+        headers.setBearerAuth(githubToken);
+        headers.setAccept(Collections.singletonList(MediaType.APPLICATION_JSON));
+        HttpEntity<Void> request = new HttpEntity<>(headers);
         ResponseEntity<BlobResponseDTO> response = restTemplate.exchange(
                 blobUrl,
                 HttpMethod.GET,
-                null,
+                request,
                 BlobResponseDTO.class
         );
 
