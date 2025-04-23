@@ -32,4 +32,7 @@ public class CompanyResponseDTO {
 
     @Schema (description = "코테에서 사용하는 언어", example = "[Python,Java]")
     private List<String> programmingLanguages = new ArrayList<>();
+
+    @Schema (description = "기업 프로필 이미지", example = "http://...")
+    private String profileUrl;
 }

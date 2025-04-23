@@ -2,7 +2,7 @@ package com.webproject.jandi_ide_backend.user.service;
 
 import com.webproject.jandi_ide_backend.tech.entity.TechStack;
 import com.webproject.jandi_ide_backend.tech.repository.TechStackRepository;
-import com.webproject.jandi_ide_backend.user.dto.RespTechStackDTO;
+import com.webproject.jandi_ide_backend.tech.dto.RespTechStackDTO;
 import com.webproject.jandi_ide_backend.user.entity.User;
 import com.webproject.jandi_ide_backend.user.entity.UserTechStack;
 import com.webproject.jandi_ide_backend.user.repository.UserRepository;

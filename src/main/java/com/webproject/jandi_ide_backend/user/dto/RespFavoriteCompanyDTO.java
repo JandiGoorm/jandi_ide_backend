@@ -10,9 +10,11 @@ import lombok.Data;
 public class RespFavoriteCompanyDTO {
     private final Integer id;
     private final String companyName;
+    private String profileUrl;
 
     public RespFavoriteCompanyDTO(Company company) {
         this.id = company.getId();
         this.companyName = company.getCompanyName();
+        this.profileUrl = company.getProfileUrl();
     }
 }

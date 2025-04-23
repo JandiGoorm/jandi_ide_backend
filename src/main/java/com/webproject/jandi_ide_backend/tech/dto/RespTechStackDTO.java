@@ -1,4 +1,4 @@
-package com.webproject.jandi_ide_backend.user.dto;
+package com.webproject.jandi_ide_backend.tech.dto;
 
 import com.webproject.jandi_ide_backend.tech.entity.TechStack;
 import lombok.Data;
