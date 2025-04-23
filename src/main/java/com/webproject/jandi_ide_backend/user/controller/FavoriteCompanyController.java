@@ -9,6 +9,7 @@ import com.webproject.jandi_ide_backend.security.JwtTokenProvider;
 import com.webproject.jandi_ide_backend.security.TokenInfo;
 import io.swagger.v3.oas.annotations.Parameter;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -20,6 +21,7 @@ public class FavoriteCompanyController {
     private final FavoriteCompanyService favoriteCompanyService;
     private final JwtTokenProvider jwtTokenProvider;
 
+    // 기업 조회
     @GetMapping("")
     public List<RespFavoriteCompanyDTO> getFavoriteCompany(
             @Parameter(hidden = true) @RequestHeader("Authorization") String token
@@ -28,8 +30,9 @@ public class FavoriteCompanyController {
         return favoriteCompanyService.readFavoriteCompany(githubId);
     }
 
+    // 기업 리스트 추가
     @PostMapping("")
-    public List<RespFavoriteCompanyDTO> PostFavoriteCompany(
+    public List<RespFavoriteCompanyDTO> postFavoriteCompany(
             @Parameter(hidden = true) @RequestHeader("Authorization") String token,
             @RequestBody ReqFavoriteCompanyDTO reqDTO
     ) {
@@ -39,6 +42,32 @@ public class FavoriteCompanyController {
 
         String githubId = getGithubIdFromToken(token);
         return favoriteCompanyService.postFavoriteCompany(githubId, reqDTO.getCompanyNameList());
+    }
+
+    // 단일 기업 추가
+    @PutMapping("/{companyId}")
+    public ResponseEntity<?> putFavoriteCompany (
+            @Parameter(hidden = true) @RequestHeader("Authorization") String token,
+            @PathVariable Integer companyId
+    ){
+        String githubId = getGithubIdFromToken(token);
+        boolean isSucceed = favoriteCompanyService.putFavoriteCompany(githubId, companyId);
+        if (!isSucceed)
+            throw new RuntimeException("알 수 없는 이유로 실패했습니다. 다시 시도해 주세요.");
+        return ResponseEntity.ok().body("추가되었습니다");
+    }
+
+    // 단일 기업 삭제
+    @DeleteMapping("/{companyId}")
+    public ResponseEntity<?> deleteFavoriteCompany (
+            @Parameter(hidden = true) @RequestHeader("Authorization") String token,
+            @PathVariable Integer companyId
+    ){
+        String githubId = getGithubIdFromToken(token);
+        boolean isSucceed = favoriteCompanyService.deleteFavoriteCompany(githubId, companyId);
+        if (!isSucceed)
+            throw new RuntimeException("알 수 없는 이유로 실패했습니다. 다시 시도해 주세요.");
+        return ResponseEntity.ok().body("삭제되었습니다");
     }
 
     private String getGithubIdFromToken(String token) {
