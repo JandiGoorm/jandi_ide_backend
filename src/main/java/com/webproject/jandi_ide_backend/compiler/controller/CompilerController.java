@@ -12,11 +12,12 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-import java.time.LocalDateTime;
+import lombok.extern.slf4j.Slf4j;
+import java.util.Stack;
+import java.util.Map;
 
 /**
  * 코드 컴파일 및 실행을 담당하는 컨트롤러
@@ -24,6 +25,7 @@ import java.time.LocalDateTime;
  * 이 컨트롤러는 사용자가 제출한 코드를 컴파일하고 실행하여 결과를 반환합니다.
  * 알고리즘 문제 풀이 및 코드 테스트 기능을 지원하며, Java, Python, C++ 언어를 지원합니다.
  */
+@Slf4j
 @RestController
 @RequestMapping("/api/compiler")
 @Tag(name = "컴파일러 API", description = "코드 컴파일 및 실행을 위한 API")
@@ -70,38 +72,121 @@ public class CompilerController {
             content = @Content(schema = @Schema(implementation = CompilerErrorResponseDto.class))
         )
     })
-    public ResponseEntity<?> submitCode(
+    public ResponseEntity<Solution> submitCode(
             @Parameter(description = "코드 제출 정보 (사용자 ID, 문제 ID, 코드, 언어, 해결 시간)", 
                       required = true) 
             @RequestBody CodeSubmissionDto submissionDto) {
-        try {
-            // 코드 컴파일 및 실행 요청
-            Solution solution = compilerService.submitCode(submissionDto);
-            return ResponseEntity.ok(solution);
-        } catch (CompilerException e) {
-            // 컴파일러 예외 처리 (컴파일 오류, 런타임 오류 등)
-            CompilerErrorResponseDto errorResponse = CompilerErrorResponseDto.builder()
-                    .status(HttpStatus.BAD_REQUEST.value())
-                    .error("Compilation Failed")
-                    .message(e.getMessage())
-                    .timestamp(LocalDateTime.now())
-                    .errorType(e.getErrorType().name())
-                    .errorDetails(e.getErrorDetails())
-                    .code(e.getCode())
-                    .language(e.getLanguage())
-                    .build();
+        // 사용자 제출 정보 로깅
+        log.debug("코드 제출: 사용자={}, 문제={}, 언어={}", 
+            submissionDto.getUserId(), 
+            submissionDto.getProblemId(), 
+            submissionDto.getLanguage());
             
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(errorResponse);
-        } catch (Exception e) {
-            // 일반 예외 처리 (서버 내부 오류)
-            CompilerErrorResponseDto errorResponse = CompilerErrorResponseDto.builder()
-                    .status(HttpStatus.INTERNAL_SERVER_ERROR.value())
-                    .error("Server Error")
-                    .message("서버 내부 오류가 발생했습니다: " + e.getMessage())
-                    .timestamp(LocalDateTime.now())
-                    .build();
+        // 코드 분석 - 간단한 사전 검사 (컴파일 오류가 명백한 경우)
+        validateCode(submissionDto.getCode(), submissionDto.getLanguage());
+        
+        // 코드 컴파일 및 실행
+        Solution solution = compilerService.submitCode(submissionDto);
+        return ResponseEntity.ok(solution);
+    }
+    
+    /**
+     * 코드의 기본적인 유효성을 검사합니다.
+     * 간단한 구문 오류(세미콜론 누락, 괄호 불일치 등)를 사전에 감지합니다.
+     */
+    private void validateCode(String code, String language) {
+        if (code == null || code.trim().isEmpty()) {
+            throw new CompilerException("code cannot be null or empty", Solution.SolutionStatus.COMPILATION_ERROR);
+        }
+
+        // Java 코드 검증
+        if ("java".equalsIgnoreCase(language)) {
+            // 세미콜론 체크 - 더 정확한 세미콜론 체크 로직
+            String[] lines = code.split("\n");
+            for (int i = 0; i < lines.length; i++) {
+                String line = lines[i].trim();
+                
+                // 주석, 빈 줄, 클래스/메서드 선언부, 괄호만 있는 줄, if/else/for/while 조건부, import 문은 제외
+                if (line.isEmpty() || 
+                    line.startsWith("//") || 
+                    line.startsWith("/*") || 
+                    line.startsWith("*") || 
+                    line.startsWith("*/") ||
+                    line.startsWith("package ") ||
+                    line.startsWith("import ") ||
+                    line.matches(".*\\{\\s*") ||  // 열린 중괄호로 끝나는 줄
+                    line.matches("\\s*\\}.*") ||  // 닫힌 중괄호로 시작하는 줄
+                    line.matches(".*\\s+class\\s+.*") ||
+                    (line.contains("if") && line.contains("(") && !line.contains("{")) ||
+                    (line.contains("for") && line.contains("(") && !line.contains("{")) ||
+                    (line.contains("while") && line.contains("(") && !line.contains("{"))) {
+                    continue;
+                }
+                
+                // 세미콜론으로 끝나지 않는 구문 검사
+                // 변수 선언, 값 할당, 메서드 호출 등은 세미콜론으로 끝나야 함
+                if (!line.endsWith(";") && 
+                    !line.endsWith("}") && 
+                    !line.endsWith("{") && 
+                    !line.contains("//") &&  // 주석 포함 라인은 건너뜀
+                    line.matches(".*\\b(int|double|float|char|boolean|String|long|byte|short)\\b.*=.*") ||  // 변수 선언/할당
+                    line.matches(".*\\.[a-zA-Z0-9_]+\\(.*\\).*") ||  // 메서드 호출
+                    line.matches(".*=\\s*[a-zA-Z0-9_]+.*") ||  // 값 할당
+                    line.matches(".*\\bInteger\\.parseInt\\(.*\\).*") ||  // Integer.parseInt 호출
+                    line.matches(".*\\bDouble\\.parseDouble\\(.*\\).*") ||  // Double.parseDouble 호출
+                    line.matches(".*\\bSystem\\.out\\..*") ||  // System.out.println/print 호출
+                    line.matches(".*[a-zA-Z0-9_]+\\(.*\\).*")) {  // 일반 메서드 호출
+                    
+                    throw new CompilerException(
+                        "Syntax error: missing semicolon at line " + (i + 1) + ": \"" + line + "\"", 
+                        Solution.SolutionStatus.COMPILATION_ERROR);
+                }
+            }
+
+            // 괄호 균형 체크
+            checkBracketBalance(code);
+
+            // Java 클래스 구조 체크 (클래스 선언이 있는지 확인)
+            if (!code.contains("class ")) {
+                throw new CompilerException("Java code must contain a class declaration", Solution.SolutionStatus.COMPILATION_ERROR);
+            }
+        }
+        // 추가 언어에 대한 검증 (Python, C++ 등)은 필요에 따라 구현
+    }
+
+    /**
+     * 코드에서 괄호의 균형이 맞는지 확인합니다.
+     */
+    private void checkBracketBalance(String code) {
+        Stack<Character> stack = new Stack<>();
+        Map<Character, Character> bracketPairs = Map.of(
+            ')', '(',
+            '}', '{',
+            ']', '['
+        );
+        
+        for (int i = 0; i < code.length(); i++) {
+            char c = code.charAt(i);
             
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(errorResponse);
+            // 여는 괄호는 스택에 추가
+            if (c == '(' || c == '{' || c == '[') {
+                stack.push(c);
+            }
+            // 닫는 괄호는 스택에서 매칭되는 여는 괄호를 확인
+            else if (c == ')' || c == '}' || c == ']') {
+                if (stack.isEmpty() || stack.pop() != bracketPairs.get(c)) {
+                    throw new CompilerException(
+                        "Syntax error: unbalanced brackets. Check if all opened brackets are properly closed.", 
+                        Solution.SolutionStatus.COMPILATION_ERROR);
+                }
+            }
+        }
+        
+        // 스택이 비어있지 않다면 여는 괄호가 닫히지 않은 것
+        if (!stack.isEmpty()) {
+            throw new CompilerException(
+                "Syntax error: unclosed brackets. Make sure all brackets are properly closed.", 
+                Solution.SolutionStatus.COMPILATION_ERROR);
         }
     }
 } 

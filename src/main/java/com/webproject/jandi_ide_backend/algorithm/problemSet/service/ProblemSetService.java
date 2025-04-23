@@ -9,6 +9,7 @@ import com.webproject.jandi_ide_backend.algorithm.problemSet.dto.ReqPostProblemS
 import com.webproject.jandi_ide_backend.algorithm.problemSet.dto.ReqUpdateProblemSetDTO;
 import com.webproject.jandi_ide_backend.algorithm.problemSet.dto.RespDetailProblemSet;
 import com.webproject.jandi_ide_backend.algorithm.problemSet.dto.RespProblemSetDTO;
+import com.webproject.jandi_ide_backend.algorithm.problemSet.dto.RespSpecProblemSetDTO;
 import com.webproject.jandi_ide_backend.algorithm.problemSet.entity.ProblemSet;
 import com.webproject.jandi_ide_backend.company.entity.Company;
 import com.webproject.jandi_ide_backend.company.repository.CompanyRepository;
@@ -22,6 +23,7 @@ import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
 import java.time.ZoneId;
+
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -57,7 +59,6 @@ public class ProblemSetService {
         ProblemSet problemSet = createData(probSetDTO, user, company, problemIds);
         return new RespProblemSetDTO(problemSet);
     }
-
     public List<RespProblemSetDTO> readProblemSet(String githubId) {
         // 유저 검증
         User user = userRepository.findByGithubId(githubId)
