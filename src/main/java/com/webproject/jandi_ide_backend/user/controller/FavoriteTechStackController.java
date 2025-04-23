@@ -5,7 +5,7 @@ import com.webproject.jandi_ide_backend.global.error.CustomException;
 import com.webproject.jandi_ide_backend.security.JwtTokenProvider;
 import com.webproject.jandi_ide_backend.security.TokenInfo;
 import com.webproject.jandi_ide_backend.user.dto.ReqTechStackDTO;
-import com.webproject.jandi_ide_backend.user.dto.RespTechStackDTO;
+import com.webproject.jandi_ide_backend.tech.dto.RespTechStackDTO;
 import com.webproject.jandi_ide_backend.user.service.UserTechStackService;
 import io.swagger.v3.oas.annotations.Parameter;
 import lombok.RequiredArgsConstructor;
@@ -16,7 +16,7 @@ import java.util.List;
 @RestController
 @RequiredArgsConstructor
 @RequestMapping("/api/tech-stack/favorite")
-public class TechStackController {
+public class FavoriteTechStackController {
     private final UserTechStackService userTechStackService;
     private final JwtTokenProvider jwtTokenProvider;
 
@@ -33,9 +33,9 @@ public class TechStackController {
             @Parameter(hidden = true) @RequestHeader("Authorization") String token,
             @RequestBody ReqTechStackDTO reqDTO
     ) {
-        // 새 기업 리스트가 없다면 에러 반환
+        // 새 언어 리스트가 없다면 에러 반환
         if (reqDTO == null || reqDTO.getTechStackNameList() == null || reqDTO.getTechStackNameList().isEmpty())
-            throw new RuntimeException("선택된 기업이 없습니다");
+            throw new RuntimeException("선택된 언어가 없습니다");
 
         String githubId = getGithubIdFromToken(token);
         return userTechStackService.putFavoriteTechStack(githubId, reqDTO.getTechStackNameList());

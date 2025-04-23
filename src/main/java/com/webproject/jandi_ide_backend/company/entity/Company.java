@@ -55,6 +55,9 @@ public class Company {
     @Column(name = "updated_at")
     private LocalDateTime updatedAt;
 
+    @Column(name = "profile_url")
+    private String profileUrl;
+
     @PrePersist
     protected void onCreate() {
         createdAt = LocalDateTime.now();
