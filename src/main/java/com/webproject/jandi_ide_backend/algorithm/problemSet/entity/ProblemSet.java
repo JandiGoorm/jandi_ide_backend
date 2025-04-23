@@ -1,5 +1,7 @@
 package com.webproject.jandi_ide_backend.algorithm.problemSet.entity;
 
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonValue;
 import com.webproject.jandi_ide_backend.company.entity.Company;
 import com.webproject.jandi_ide_backend.user.entity.User;
 import jakarta.persistence.*;
@@ -83,7 +85,51 @@ public class ProblemSet {
         updatedAt = LocalDateTime.now();
     }
 
-    public enum Language{
-        JAVA,PYTHON,CPP
+    public enum Language {
+        JAVA("JAVA"),
+        PYTHON("PYTHON"),
+        CPP("C++");
+
+        private final String displayName;
+
+        Language(String displayName) {
+            this.displayName = displayName;
+        }
+
+        @JsonCreator
+        public static Language fromDisplayName(String value) {
+            if (value == null) {
+                return null;
+            }
+
+            // 정확히 일치하는지 먼저 확인
+            for (Language lang : Language.values()) {
+                if (lang.getDisplayName().equals(value)) {
+                    return lang;
+                }
+            }
+
+            // 대소문자 구분 없이 확인
+            for (Language lang : Language.values()) {
+                if (lang.getDisplayName().equalsIgnoreCase(value)) {
+                    return lang;
+                }
+            }
+
+            // enum 이름 자체로도 확인 (CPP를 직접 입력하는 경우)
+            try {
+                return Language.valueOf(value.toUpperCase());
+            } catch (IllegalArgumentException e) {
+                // 무시하고 계속 진행
+            }
+
+            // 예외 발생
+            throw new IllegalArgumentException("지원하지 않는 언어: " + value);
+        }
+
+        @JsonValue
+        public String getDisplayName() {
+            return displayName;
+        }
     }
 }

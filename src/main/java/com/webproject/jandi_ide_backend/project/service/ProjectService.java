@@ -53,7 +53,7 @@ public class ProjectService {
         // 3. 프로젝트 정보 조회
         List<Project> projects = projectRepository.findByOwner_Id(user.getId());
 
-        // 4. 응답 DTO 반환
+        // 4. 응답 DTO 변환 후 owner 정보 제거
         return projects.stream().map(this::convertToDTO).toList();
     }
 
@@ -259,7 +259,14 @@ public class ProjectService {
                 request,
                 Map.class
         );
+        Map<String, Object> responseBody = response.getBody();
+        // 최상단 URL만 웹 인터페이스 링크로 변환
+        if (responseBody != null && responseBody.containsKey("url")) {
+            String webUrl = "https://github.com/" + githubUsername + "/" + githubReponame;
 
+            // 기존 url 대신 웹 인터페이스 URL로 대체
+            responseBody.put("url", webUrl);
+        }
         return response.getBody();
     }
 
@@ -288,7 +295,6 @@ public class ProjectService {
         dto.setGithubName(project.getGithubName());
         dto.setDescription(project.getDescription());
         dto.setUrl(project.getUrl());
-        dto.setOwner(project.getOwner());
         dto.setCreatedAt(project.getCreatedAt());
         dto.setUpdatedAt(project.getUpdatedAt());
         return dto;
