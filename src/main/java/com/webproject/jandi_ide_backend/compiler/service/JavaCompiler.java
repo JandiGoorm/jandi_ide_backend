@@ -10,7 +10,6 @@ import org.springframework.stereotype.Service;
 import java.io.*;
 import java.nio.file.Path;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.*;
 
@@ -62,11 +61,6 @@ public class JavaCompiler {
                                 output.append(errorLine).append("\n");
                             }
                         }
-                        output.append("\n일반적인 컴파일 오류 원인:\n");
-                        output.append("  - 세미콜론(;) 누락\n");
-                        output.append("  - 괄호 불일치\n");
-                        output.append("  - 변수 또는 메소드 이름 오타\n");
-                        output.append("  - 타입 불일치\n");
                         
                         results.add(ResultDto.builder()
                                 .testNum(i+1)
@@ -79,7 +73,6 @@ public class JavaCompiler {
                     }
                 } catch (IOException | InterruptedException e) {
                     output.append("컴파일 프로세스 오류: ").append(e.getMessage()).append("\n");
-                    output.append("JDK가 올바르게 설치되어 있는지 확인해 주세요.\n");
                     results.add(ResultDto.builder()
                             .testNum(i+1)
                             .input(input)
@@ -132,7 +125,6 @@ public class JavaCompiler {
                             output.append("시간 초과 발생: 실행 시간이 제한(")
                                   .append(problem.getTimeLimit())
                                   .append("초)을 초과했습니다.\n");
-                            output.append("알고리즘의 복잡도를 개선하거나, 무한 루프를 확인해 보세요.\n");
                             
                             results.add(ResultDto.builder()
                                     .testNum(i+1)
@@ -204,7 +196,6 @@ public class JavaCompiler {
                         output.append("\n테스트 케이스 #").append(i + 1).append(" 실패");
                         output.append("\n기대 출력: ").append(expectedOutput);
                         output.append("\n실제 출력: ");
-                        output.append("\n출력 형식과 타입을 확인해 보세요. 공백이나 줄바꿈에 주의하세요.");
                     }
 
                     results.add(ResultDto.builder()
