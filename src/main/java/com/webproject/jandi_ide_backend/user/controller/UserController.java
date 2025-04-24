@@ -3,7 +3,7 @@ package com.webproject.jandi_ide_backend.user.controller;
 
 import com.webproject.jandi_ide_backend.global.error.CustomErrorCodes;
 import com.webproject.jandi_ide_backend.global.error.CustomException;
-import com.webproject.jandi_ide_backend.project.dto.ProjectResponseDTO;
+import com.webproject.jandi_ide_backend.project.dto.ProjectPageResponseDTO;
 import com.webproject.jandi_ide_backend.project.service.ProjectService;
 import com.webproject.jandi_ide_backend.user.dto.*;
 import com.webproject.jandi_ide_backend.user.service.UserService;
@@ -18,8 +18,6 @@ import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-
-import java.util.List;
 
 
 /**
@@ -151,14 +149,16 @@ public class UserController {
     @Operation(summary = "특정 유저의 대표 프로젝트 조회", description = "특정 유저의 대표 프로젝트를 조회합니다.", security = { @SecurityRequirement(name = "Authorization") })
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "조회 성공",
-                    content = @Content(array = @ArraySchema(schema = @Schema(implementation = ProjectResponseDTO.class)))
+                    content = @Content(array = @ArraySchema(schema = @Schema(implementation = ProjectPageResponseDTO.class)))
             ),
     })
-    public ResponseEntity<List<ProjectResponseDTO>> getProjects(
+    public ResponseEntity<ProjectPageResponseDTO> getProjects(
             @Parameter(hidden = true) @RequestHeader("Authorization") String token,
-            @PathVariable Integer id
+            @PathVariable Integer id,
+            @RequestParam(value="page",defaultValue = "0") Integer page,
+            @RequestParam(value="size",defaultValue = "10") Integer size
     ) {
-        List<ProjectResponseDTO> projectResponseDTOList = projectService.getProjects(token, id);
+        ProjectPageResponseDTO projectResponseDTOList = projectService.getProjects(token, id, page, size);
         return ResponseEntity.ok(projectResponseDTOList);
     }
 }
