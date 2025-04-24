@@ -16,9 +16,6 @@ import java.time.LocalDateTime;
 @Builder
 @Schema(description = "컴파일러 오류 응답 정보")
 public class CompilerErrorResponseDto {
-    @Schema(description = "HTTP 상태 코드", example = "400")
-    private int status;
-    
     @Schema(description = "오류 유형", example = "Compilation Failed")
     private String error;
     
