@@ -1,5 +1,6 @@
 package com.webproject.jandi_ide_backend.user.entity;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.webproject.jandi_ide_backend.algorithm.problemSet.entity.ProblemSet;
 import com.webproject.jandi_ide_backend.algorithm.solution.entity.Solution;
 import com.webproject.jandi_ide_backend.project.entity.Project;
@@ -60,8 +61,9 @@ public class User {
     @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<UserFavoriteCompany> favoriteCompanies = new ArrayList<>();
 
-    @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
-    private List<Solution> solutions = new ArrayList<>();
+    @JsonIgnore
+    @OneToMany(mappedBy = "user", cascade = CascadeType.ALL)
+    private List<Solution> solutions;
 
     @OneToMany(mappedBy = "owner", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<Project> projects = new ArrayList<>();

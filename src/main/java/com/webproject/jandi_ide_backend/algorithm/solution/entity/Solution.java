@@ -1,5 +1,7 @@
 package com.webproject.jandi_ide_backend.algorithm.solution.entity;
 
+import com.fasterxml.jackson.annotation.JsonBackReference;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.webproject.jandi_ide_backend.user.entity.User;
 import jakarta.persistence.*;
 import lombok.Getter;
@@ -23,6 +25,7 @@ public class Solution {
     private Long id;
 
     // 제출한 사용자와의 관계 설정
+    @JsonBackReference
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id", nullable = false)
     private User user;
@@ -30,6 +33,10 @@ public class Solution {
     // 문제 ID 저장
     @Column(name = "problem_id", nullable = false)
     private Integer problemId;
+    
+    // 문제집 ID 저장
+    @Column(name = "problem_set_id")
+    private Long problemSetId;
 
     // 사용자가 작성한 코드 (풀이 내용)
     @Column(name = "code", columnDefinition = "TEXT", nullable = false)
