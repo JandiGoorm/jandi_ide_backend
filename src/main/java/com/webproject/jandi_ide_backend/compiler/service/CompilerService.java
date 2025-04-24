@@ -15,6 +15,7 @@ import com.webproject.jandi_ide_backend.compiler.dto.SaveSolutionDto;
 import com.webproject.jandi_ide_backend.compiler.exception.CompilerException;
 import com.webproject.jandi_ide_backend.user.entity.User;
 import com.webproject.jandi_ide_backend.user.service.UserService;
+import jakarta.annotation.PostConstruct;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -41,6 +42,7 @@ public class CompilerService {
     private final TestCaseService testCaseService;
     private final UserService userService;
     private final SolutionService solutionService;
+    private final CompilerFileManager fileManager;
 
     /**
      * 컴파일러 서비스 생성자
@@ -52,6 +54,7 @@ public class CompilerService {
      * @param testCaseService 테스트 케이스 서비스
      * @param userService 사용자 서비스
      * @param solutionService 솔루션 서비스
+     * @param fileManager 컴파일러 파일 관리자
      */
     public CompilerService(
             JavaCompiler javaCompiler,
@@ -60,7 +63,8 @@ public class CompilerService {
             ProblemService problemService,
             TestCaseService testCaseService,
             UserService userService,
-            SolutionService solutionService) {
+            SolutionService solutionService,
+            CompilerFileManager fileManager) {
         this.javaCompiler = javaCompiler;
         this.pythonCompiler = pythonCompiler;
         this.cppCompiler = cppCompiler;
@@ -68,6 +72,15 @@ public class CompilerService {
         this.testCaseService = testCaseService;
         this.userService = userService;
         this.solutionService = solutionService;
+        this.fileManager = fileManager;
+    }
+    
+    /**
+     * 애플리케이션 시작 시 컴파일러 작업 디렉토리 초기화
+     */
+    @PostConstruct
+    public void init() {
+        fileManager.initCompilerWorkspace();
     }
 
     /**
@@ -93,7 +106,8 @@ public class CompilerService {
         List<TestCase> testCases = testCaseService.getTestCasesByProblemId(submissionDto.getProblemId().intValue());
         
         // 3. 언어별 컴파일러 선택 및 실행
-        List<ResultDto> results = compileAndRun(problem, testCases, submissionDto.getCode(), submissionDto.getLanguage());
+        List<ResultDto> results = compileAndRun(problem, testCases, submissionDto.getCode(), 
+                                             submissionDto.getLanguage(), submissionDto.getUserId());
         
         // 4. 결과 분석
         boolean isAllPass = results.stream().allMatch(result -> result.getStatus() == ResultStatus.CORRECT);
@@ -592,14 +606,15 @@ public class CompilerService {
      * @param testCases 테스트 케이스 목록
      * @param code 실행할 코드
      * @param language 프로그래밍 언어
+     * @param userId 사용자 ID
      * @return 테스트 케이스별 실행 결과 목록
      * @throws IllegalArgumentException 지원하지 않는 언어인 경우
      */
-    private List<ResultDto> compileAndRun(Problem problem, List<TestCase> testCases, String code, String language) {
+    private List<ResultDto> compileAndRun(Problem problem, List<TestCase> testCases, String code, String language, Long userId) {
         return switch (language.toLowerCase()) {
-            case "java" -> javaCompiler.runCode(problem, testCases, code);
-            case "python" -> pythonCompiler.runCode(problem, testCases, code);
-            case "c++" -> cppCompiler.runCode(problem, testCases, code);
+            case "java" -> javaCompiler.runCode(problem, testCases, code, userId);
+            case "python" -> pythonCompiler.runCode(problem, testCases, code, userId);
+            case "c++" -> cppCompiler.runCode(problem, testCases, code, userId);
             default -> throw new IllegalArgumentException("지원하지 않는 언어입니다: " + language);
         };
     }
@@ -706,7 +721,8 @@ public class CompilerService {
         List<TestCase> testCases = testCaseService.getTestCasesByProblemId(submissionDto.getProblemId().intValue());
         
         // 3. 언어별 컴파일러 선택 및 실행
-        List<ResultDto> results = compileAndRun(problem, testCases, submissionDto.getCode(), submissionDto.getLanguage());
+        List<ResultDto> results = compileAndRun(problem, testCases, submissionDto.getCode(), 
+                                             submissionDto.getLanguage(), submissionDto.getUserId());
         
         // 4. 결과 분석
         boolean isAllPass = results.stream().allMatch(result -> result.getStatus() == ResultStatus.CORRECT);
