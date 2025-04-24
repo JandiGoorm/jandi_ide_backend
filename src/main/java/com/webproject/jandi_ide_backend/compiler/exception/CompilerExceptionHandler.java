@@ -14,6 +14,11 @@ import com.webproject.jandi_ide_backend.algorithm.solution.entity.Solution.Solut
 import com.webproject.jandi_ide_backend.compiler.dto.CompilerErrorResponseDto;
 import com.webproject.jandi_ide_backend.compiler.controller.CompilerController;
 
+import io.swagger.v3.oas.annotations.Hidden;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.Schema;
+
 import lombok.extern.slf4j.Slf4j;
 
 /**
@@ -31,6 +36,12 @@ public class CompilerExceptionHandler {
      * 컴파일러에서 명시적으로 발생시킨 예외를 처리합니다.
      */
     @ExceptionHandler(CompilerException.class)
+    @ApiResponse(
+        responseCode = "400",
+        description = "컴파일러 예외 발생",
+        content = @Content(schema = @Schema(implementation = CompilerErrorResponseDto.class))
+    )
+    @Hidden // API 응답은 컨트롤러의 ApiResponse로 문서화됨
     public ResponseEntity<CompilerErrorResponseDto> handleCompilerException(CompilerException ex) {
         log.error("컴파일러 예외 발생: {}", ex.getMessage(), ex);
         
@@ -53,6 +64,12 @@ public class CompilerExceptionHandler {
      * CompilerException 이외의 일반 예외를 처리합니다.
      */
     @ExceptionHandler(Exception.class)
+    @ApiResponse(
+        responseCode = "400",
+        description = "일반 예외 발생",
+        content = @Content(schema = @Schema(implementation = CompilerErrorResponseDto.class))
+    )
+    @Hidden // API 응답은 컨트롤러의 ApiResponse로 문서화됨
     public ResponseEntity<CompilerErrorResponseDto> handleGenericException(Exception ex) {
         log.error("컴파일러 처리 중 예외 발생: {}", ex.getMessage(), ex);
         
@@ -152,6 +169,12 @@ public class CompilerExceptionHandler {
      * Exception으로 캐치되지 않는 모든 예외를 처리합니다.
      */
     @ExceptionHandler(Throwable.class)
+    @ApiResponse(
+        responseCode = "400",
+        description = "예상치 못한 오류 발생",
+        content = @Content(schema = @Schema(implementation = CompilerErrorResponseDto.class))
+    )
+    @Hidden // API 응답은 컨트롤러의 ApiResponse로 문서화됨
     public ResponseEntity<CompilerErrorResponseDto> handleAllThrowable(Throwable ex) {
         log.error("컴파일러 처리 중 예상치 못한 오류 발생: {}", ex.getMessage(), ex);
         
