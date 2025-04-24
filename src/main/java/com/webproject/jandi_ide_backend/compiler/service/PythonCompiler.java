@@ -67,8 +67,12 @@ public class PythonCompiler {
                 BufferedWriter writer = new BufferedWriter(new OutputStreamWriter(stdin));
                 
                 log.debug("Test case input: {}", input);
-                // 텍스트 파일 입력 방식으로 변경 (쉼표는 그대로 유지)
-                writer.write(input);
+                // 입력값 처리: 공백으로 구분된 입력을 쉼표로 구분된 형식으로 변환
+                String[] inputValues = input.trim().split("\\s+");
+                String formattedInput = String.join(",", inputValues);
+                log.debug("Formatted input for test case {}: {}", i+1, formattedInput);
+                
+                writer.write(formattedInput);
                 writer.newLine();
                 writer.flush();
                 writer.close(); // 입력 스트림을 닫아 프로세스가 더 이상 입력을 기다리지 않게 함
