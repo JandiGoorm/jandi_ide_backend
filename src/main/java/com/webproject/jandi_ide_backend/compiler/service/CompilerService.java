@@ -120,6 +120,7 @@ public class CompilerService {
         Solution solution = new Solution();
         solution.setUser(user);
         solution.setProblemId(problem.getId());
+        solution.setProblemSetId(submissionDto.getProblemSetId());
         solution.setCode(submissionDto.getCode());
         solution.setLanguage(submissionDto.getLanguage());
         solution.setSolvingTime(submissionDto.getSolvingTime());
@@ -269,6 +270,7 @@ public class CompilerService {
         Solution solution = new Solution();
         solution.setUser(user);
         solution.setProblemId(0); // 문제 ID를 0으로 저장 (테스트 모드)
+        solution.setProblemSetId(submissionDto.getProblemSetId());
         solution.setCode(code);
         solution.setLanguage(language);
         solution.setSolvingTime(submissionDto.getSolvingTime());
