@@ -2,9 +2,7 @@ package com.webproject.jandi_ide_backend.chat.controller;
 
 import com.webproject.jandi_ide_backend.chat.dto.ChatMessageDTO;
 import com.webproject.jandi_ide_backend.chat.service.ChatMessageService;
-import com.webproject.jandi_ide_backend.redis.pubsub.RedisPublisher;
 import com.webproject.jandi_ide_backend.security.JwtTokenProvider;
-import com.webproject.jandi_ide_backend.security.TokenInfo;
 import com.webproject.jandi_ide_backend.user.entity.User;
 import com.webproject.jandi_ide_backend.user.repository.UserRepository;
 import io.swagger.v3.oas.annotations.Operation;
@@ -25,8 +23,6 @@ import org.springframework.messaging.handler.annotation.MessageMapping;
 import org.springframework.messaging.handler.annotation.Payload;
 import org.springframework.messaging.simp.SimpMessageHeaderAccessor;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -37,7 +33,6 @@ import java.security.Principal;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeParseException;
 import java.util.List;
-import java.util.Map;
 
 /**
  * WebSocket STOMP 기반의 채팅 메시지를 처리하는 컨트롤러입니다.

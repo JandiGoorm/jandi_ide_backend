@@ -9,6 +9,7 @@ import com.webproject.jandi_ide_backend.algorithm.testCase.entity.TestCase;
 import com.webproject.jandi_ide_backend.algorithm.testCase.service.TestCaseService;
 import com.webproject.jandi_ide_backend.compiler.dto.CodeSubmissionDto;
 import com.webproject.jandi_ide_backend.compiler.dto.CompileResultDto;
+import com.webproject.jandi_ide_backend.compiler.dto.CompilerErrorResponseDto;
 import com.webproject.jandi_ide_backend.compiler.dto.ResultDto;
 import com.webproject.jandi_ide_backend.compiler.dto.ResultStatus;
 import com.webproject.jandi_ide_backend.compiler.dto.SaveSolutionDto;
@@ -21,6 +22,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.io.*;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.concurrent.*;
 import java.util.stream.Collectors;
@@ -925,5 +927,121 @@ public class CompilerService {
         
         // Solution 저장 및 반환
         return solutionService.saveSolution(solution);
+    }
+
+    /**
+     * 코드가 비어있는지 검증하고, 비어있는 경우 적절한 에러 응답을 반환합니다.
+     * 
+     * @param code 검증할 코드
+     * @param language 프로그래밍 언어
+     * @return 비어있는 경우 CompilerErrorResponseDto, 그렇지 않으면 null
+     */
+    public CompilerErrorResponseDto validateCode(String code, String language) {
+        if (code == null || code.trim().isEmpty()) {
+            return CompilerErrorResponseDto.builder()
+                .status(400)
+                .error("Invalid Input")
+                .message("코드는 비어있을 수 없습니다")
+                .timestamp(LocalDateTime.now())
+                .errorType("COMPILATION_ERROR")
+                .errorDetails("코드가 비어있습니다. 코드를 입력해주세요.")
+                .code("")
+                .language(language)
+                .build();
+        }
+        return null;
+    }
+    
+    /**
+     * CompilerException을 처리하여 적절한 에러 응답을 생성합니다.
+     * 
+     * @param e 발생한 CompilerException
+     * @return 에러 응답 DTO
+     */
+    public CompilerErrorResponseDto handleCompilerException(CompilerException e) {
+        return CompilerErrorResponseDto.builder()
+            .status(400)
+            .error(e.getErrorType() != null ? e.getErrorType().name() : "Compilation Failed")
+            .message(e.getMessage())
+            .timestamp(LocalDateTime.now())
+            .errorType(e.getErrorType() != null ? e.getErrorType().name() : "COMPILATION_ERROR")
+            .errorDetails(e.getErrorDetails())
+            .code(e.getCode())
+            .language(e.getLanguage())
+            .build();
+    }
+    
+    /**
+     * 일반 예외를 처리하여 적절한 서버 에러 응답을 생성합니다.
+     * 
+     * @param e 발생한 예외
+     * @param code 실행된 코드
+     * @param language 프로그래밍 언어
+     * @param isCompile 컴파일 과정에서 발생한 예외인지 여부
+     * @return 에러 응답 DTO
+     */
+    public CompilerErrorResponseDto handleGeneralException(Exception e, String code, String language, boolean isCompile) {
+        String errorMessage = isCompile ? 
+            "코드 컴파일 중 예상치 못한 오류가 발생했습니다" : 
+            "솔루션 저장 중 예상치 못한 오류가 발생했습니다";
+            
+        log.error("Unexpected error: {}", e.getMessage(), e);
+        
+        return CompilerErrorResponseDto.builder()
+            .status(500)
+            .error("Internal Server Error")
+            .message(errorMessage)
+            .timestamp(LocalDateTime.now())
+            .errorType("SERVER_ERROR")
+            .errorDetails(e.getMessage())
+            .code(code)
+            .language(language)
+            .build();
+    }
+    
+    /**
+     * 코드 제출 DTO에서 compileCode를 호출하고, 발생 가능한 모든 예외를 처리합니다.
+     * 
+     * @param submissionDto 코드 제출 정보
+     * @return 컴파일 결과 또는 에러 응답
+     */
+    public Object processCompileRequest(CodeSubmissionDto submissionDto) {
+        try {
+            // 코드 유효성 검증
+            CompilerErrorResponseDto validationError = validateCode(submissionDto.getCode(), submissionDto.getLanguage());
+            if (validationError != null) {
+                return validationError;
+            }
+            
+            // 코드 컴파일 및 실행
+            return compileCode(submissionDto);
+        } catch (CompilerException e) {
+            return handleCompilerException(e);
+        } catch (Exception e) {
+            return handleGeneralException(e, submissionDto.getCode(), submissionDto.getLanguage(), true);
+        }
+    }
+    
+    /**
+     * 솔루션 저장 DTO에서 saveSolution을 호출하고, 발생 가능한 모든 예외를 처리합니다.
+     * 
+     * @param saveSolutionDto 솔루션 저장 정보
+     * @return 저장된 솔루션 또는 에러 응답
+     */
+    public Object processSaveSolutionRequest(SaveSolutionDto saveSolutionDto) {
+        try {
+            // 코드 유효성 검증
+            CompilerErrorResponseDto validationError = validateCode(saveSolutionDto.getCode(), saveSolutionDto.getLanguage());
+            if (validationError != null) {
+                return validationError;
+            }
+            
+            // 솔루션 저장
+            return saveSolution(saveSolutionDto);
+        } catch (CompilerException e) {
+            return handleCompilerException(e);
+        } catch (Exception e) {
+            return handleGeneralException(e, saveSolutionDto.getCode(), saveSolutionDto.getLanguage(), false);
+        }
     }
 } 
