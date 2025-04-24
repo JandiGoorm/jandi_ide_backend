@@ -115,15 +115,22 @@ public class CompilerService {
         boolean isAllPass = results.stream().allMatch(result -> result.getStatus() == ResultStatus.CORRECT);
         
         // 5. 최대 실행 시간과 메모리 사용량 계산
-        Double maxExecutionTime = results.stream()
-                .mapToDouble(ResultDto::getExecutionTime)
-                .max()
-                .orElse(0.0);
-        
-        Double maxMemoryUsage = results.stream()
-                .mapToDouble(ResultDto::getUsedMemory)
-                .max()
-                .orElse(0.0);
+        Double maxExecutionTime = 0.0;
+        Double maxMemoryUsage = 0.0;
+
+        if (results != null && !results.isEmpty()) {
+            maxExecutionTime = results.stream()
+                    .filter(result -> result != null)
+                    .mapToDouble(result -> result.getExecutionTime() != null ? result.getExecutionTime() : 0.0)
+                    .max()
+                    .orElse(0.0);
+            
+            maxMemoryUsage = results.stream()
+                    .filter(result -> result != null)
+                    .mapToDouble(result -> result.getUsedMemory() != null ? result.getUsedMemory() : 0.0)
+                    .max()
+                    .orElse(0.0);
+        }
         
         // 6. 실행 결과 문자열 생성
         StringBuilder resultDetails = new StringBuilder();
@@ -217,17 +224,13 @@ public class CompilerService {
                     isCompiled = checkJavaCompilation(code, output);
                     if (!isCompiled) {
                         status = SolutionStatus.COMPILATION_ERROR;
-                        output.append("\n컴파일 에러 발생: 코드를 확인해 주세요.\n");
-                        output.append("세미콜론 누락, 괄호 불일치, 메서드 이름 오타 등이 흔한 원인입니다.\n");
-                        throw new CompilerException("자바 컴파일 에러가 발생했습니다", status, output.toString(), code, language);
+                        throw new CompilerException("자바 컴파일 에러", status, output.toString(), code, language);
                     }
                     output.append("컴파일 성공. 실행 시작...\n\n");
                     isExecuted = checkJavaExecution(code, simpleInput, output);
                     if (!isExecuted) {
                         status = SolutionStatus.RUNTIME_ERROR;
-                        output.append("\n런타임 에러 발생: 실행 중 오류가 발생했습니다.\n");
-                        output.append("배열 인덱스 범위, null 참조, 형변환 오류 등을 확인해 보세요.\n");
-                        throw new CompilerException("자바 실행 오류가 발생했습니다", status, output.toString(), code, language);
+                        throw new CompilerException("자바 실행 오류", status, output.toString(), code, language);
                     }
                     break;
                     
@@ -237,9 +240,7 @@ public class CompilerService {
                     isExecuted = checkPythonExecution(code, simpleInput, output);
                     if (!isExecuted) {
                         status = SolutionStatus.RUNTIME_ERROR;
-                        output.append("\n실행 오류 발생: 코드를 확인해 주세요.\n");
-                        output.append("들여쓰기, 변수 이름 오타, 라이브러리 사용 방법 등을 확인해 보세요.\n");
-                        throw new CompilerException("파이썬 실행 오류가 발생했습니다", status, output.toString(), code, language);
+                        throw new CompilerException("파이썬 실행 오류", status, output.toString(), code, language);
                     }
                     break;
                     
@@ -248,24 +249,20 @@ public class CompilerService {
                     isCompiled = checkCppCompilation(code, output);
                     if (!isCompiled) {
                         status = SolutionStatus.COMPILATION_ERROR;
-                        output.append("\n컴파일 에러 발생: 코드를 확인해 주세요.\n");
-                        output.append("세미콜론 누락, 헤더 파일 포함, 변수 초기화 등이 흔한 원인입니다.\n");
-                        throw new CompilerException("C++ 컴파일 에러가 발생했습니다", status, output.toString(), code, language);
+                        throw new CompilerException("C++ 컴파일 에러", status, output.toString(), code, language);
                     }
                     output.append("컴파일 성공! 실행 시작...\n\n");
                     isExecuted = checkCppExecution(code, simpleInput, output);
                     if (!isExecuted) {
                         status = SolutionStatus.RUNTIME_ERROR;
-                        output.append("\n런타임 에러 발생: 실행 중 오류가 발생했습니다.\n");
-                        output.append("메모리 관리, 세그먼테이션 오류, 포인터 사용 등을 확인해 보세요.\n");
-                        throw new CompilerException("C++ 실행 오류가 발생했습니다", status, output.toString(), code, language);
+                        throw new CompilerException("C++ 실행 오류", status, output.toString(), code, language);
                     }
                     break;
                     
                 default:
                     output.append("지원하지 않는 언어입니다: ").append(language);
                     output.append("\n현재 지원 언어: java, python, c++");
-                    throw new CompilerException("지원하지 않는 언어입니다", SolutionStatus.COMPILATION_ERROR, 
+                    throw new CompilerException("지원하지 않는 언어", SolutionStatus.COMPILATION_ERROR, 
                           "언어: " + language + "는 지원되지 않습니다. 지원 언어: java, python, c++", code, language);
             }
             
@@ -278,9 +275,8 @@ public class CompilerService {
             throw e;
         } catch (Exception e) {
             // 예상치 못한 예외 처리
-            output.append("예상치 못한 오류: ").append(e.getMessage()).append("\n");
-            output.append("시스템 관리자에게 문의하세요.");
-            throw new CompilerException("알 수 없는 오류가 발생했습니다", SolutionStatus.RUNTIME_ERROR, 
+            output.append("예상치 못한 오류: ").append(e.getMessage());
+            throw new CompilerException("알 수 없는 오류", SolutionStatus.RUNTIME_ERROR, 
                                       e.getMessage(), code, language);
         }
         
@@ -320,22 +316,45 @@ public class CompilerService {
             // 컴파일 프로세스 실행
             ProcessBuilder compilePb = new ProcessBuilder("javac", javaFile.getAbsolutePath());
             Process compileProcess = compilePb.start();
-            compileProcess.waitFor();
+            
+            // 프로세스 출력 수집
+            String[] results = collectProcessOutput(compileProcess, 10); // 10초 타임아웃
+            String stdOut = results[0];
+            String stdErr = results[1];
+            
+            // 프로세스 종료 대기
+            int exitCode = compileProcess.waitFor();
             
             // 컴파일 결과 확인 (종료 코드가 0이 아니면 컴파일 실패)
-            if (compileProcess.exitValue() != 0) {
-                // 오류 메시지 읽기
-                BufferedReader errorReader = new BufferedReader(new InputStreamReader(compileProcess.getErrorStream()));
-                String errorLine;
-                while ((errorLine = errorReader.readLine()) != null) {
-                    output.append(errorLine).append("\n");
+            if (exitCode != 0) {
+                // 오류 출력이 있으면 추가
+                if (!stdErr.isEmpty()) {
+                    output.append(stdErr);
                 }
+                // 표준 출력도 있으면 추가 (일부 컴파일러는 표준 출력으로 오류 메시지를 출력할 수 있음)
+                if (!stdOut.isEmpty()) {
+                    output.append(stdOut);
+                }
+                
+                // 둘 다 비어있으면 기본 메시지
+                if (stdErr.isEmpty() && stdOut.isEmpty()) {
+                    output.append("컴파일 실패 (종료 코드: ").append(exitCode).append(")");
+                }
+                
                 return false;
             }
             
+            // 성공이지만 출력이 있는 경우 (경고 등)
+            if (!stdOut.isEmpty()) {
+                output.append("컴파일러 출력: ").append(stdOut);
+            }
+            
             return true;
+        } catch (TimeoutException e) {
+            output.append("컴파일 시간 초과 (10초)");
+            return false;
         } catch (Exception e) {
-            output.append("컴파일 중 오류 발생: ").append(e.getMessage());
+            output.append("컴파일 중 시스템 오류: ").append(e.getMessage());
             return false;
         } finally {
             // 임시 파일 정리
@@ -377,27 +396,41 @@ public class CompilerService {
                 }
             }
             
-            // 결과 읽기 (비동기)
-            ExecutorService executor = Executors.newSingleThreadExecutor();
-            Future<String> future = executor.submit(() -> {
-                StringBuilder result = new StringBuilder();
-                try (BufferedReader reader = new BufferedReader(new InputStreamReader(runProcess.getInputStream()))) {
-                    String line;
-                    while ((line = reader.readLine()) != null) {
-                        result.append(line).append("\n");
-                    }
-                }
-                return result.toString();
-            });
+            // 프로세스 출력 수집 (5초 타임아웃)
+            String[] results = collectProcessOutput(runProcess, 5);
+            String stdOut = results[0];
+            String stdErr = results[1];
             
-            // 최대 5초 실행 시간 제한
-            String result = future.get(5, TimeUnit.SECONDS);
-            output.append("실행 결과: ").append(result);
+            // 프로세스 종료 대기
+            int exitCode = runProcess.waitFor();
             
-            executor.shutdown();
+            // 실행 결과 및 오류 기록
+            output.append("실행 결과 (종료 코드: ").append(exitCode).append("):\n");
+            
+            if (!stdOut.isEmpty()) {
+                output.append("표준 출력:\n").append(stdOut);
+            } else {
+                output.append("(표준 출력 없음)\n");
+            }
+            
+            // 오류가 있는 경우 추가
+            if (!stdErr.isEmpty()) {
+                output.append("\n오류 출력:\n").append(stdErr);
+                return false;
+            }
+            
+            // 종료 코드가 0이 아니면 실행 실패로 간주
+            if (exitCode != 0) {
+                output.append("\n비정상 종료: 종료 코드 ").append(exitCode);
+                return false;
+            }
+            
             return true;
+        } catch (TimeoutException e) {
+            output.append("실행 시간 초과 (5초)");
+            return false;
         } catch (Exception e) {
-            output.append("실행 중 오류 발생: ").append(e.getMessage());
+            output.append("실행 중 시스템 오류: ").append(e.getMessage());
             return false;
         } finally {
             // 임시 파일 정리
@@ -435,7 +468,6 @@ public class CompilerService {
             for (String interpreter : pythonInterpreters) {
                 try {
                     runPb = new ProcessBuilder(interpreter, pythonFile.getAbsolutePath());
-                    runPb.redirectErrorStream(true);
                     log.debug("Trying Python interpreter: {}", interpreter);
                     runProcess = runPb.start();
                     started = true;
@@ -451,39 +483,50 @@ public class CompilerService {
                                       String.join(", ", pythonInterpreters));
             }
             
-            // final로 runProcess 복사
-            final Process finalRunProcess = runProcess;
-            
             // 입력 데이터 전달
             if (input != null && !input.isEmpty()) {
-                try (BufferedWriter processInput = new BufferedWriter(new OutputStreamWriter(finalRunProcess.getOutputStream()))) {
+                try (BufferedWriter processInput = new BufferedWriter(new OutputStreamWriter(runProcess.getOutputStream()))) {
                     processInput.write(input); // 직접 전체 입력을 한번에 전달
                     processInput.newLine();
                     processInput.flush();
                 }
             }
             
-            // 결과 읽기 (비동기)
-            ExecutorService executor = Executors.newSingleThreadExecutor();
-            Future<String> future = executor.submit(() -> {
-                StringBuilder result = new StringBuilder();
-                try (BufferedReader reader = new BufferedReader(new InputStreamReader(finalRunProcess.getInputStream()))) {
-                    String line;
-                    while ((line = reader.readLine()) != null) {
-                        result.append(line).append("\n");
-                    }
-                }
-                return result.toString();
-            });
+            // 프로세스 출력 수집 (5초 타임아웃)
+            String[] results = collectProcessOutput(runProcess, 5);
+            String stdOut = results[0];
+            String stdErr = results[1];
             
-            // 최대 5초 실행 시간 제한
-            String result = future.get(5, TimeUnit.SECONDS);
-            output.append("실행 결과: ").append(result);
+            // 프로세스 종료 대기
+            int exitCode = runProcess.waitFor();
             
-            executor.shutdown();
+            // 실행 결과 및 오류 기록
+            output.append("실행 결과 (종료 코드: ").append(exitCode).append("):\n");
+            
+            if (!stdOut.isEmpty()) {
+                output.append("표준 출력:\n").append(stdOut);
+            } else {
+                output.append("(표준 출력 없음)\n");
+            }
+            
+            // 오류가 있는 경우 추가
+            if (!stdErr.isEmpty()) {
+                output.append("\n오류 출력:\n").append(stdErr);
+                return false;
+            }
+            
+            // 종료 코드가 0이 아니면 실행 실패로 간주
+            if (exitCode != 0) {
+                output.append("\n비정상 종료: 종료 코드 ").append(exitCode);
+                return false;
+            }
+            
             return true;
+        } catch (TimeoutException e) {
+            output.append("실행 시간 초과 (5초)");
+            return false;
         } catch (Exception e) {
-            output.append("실행 중 오류 발생: ").append(e.getMessage());
+            output.append("실행 중 시스템 오류: ").append(e.getMessage());
             return false;
         } finally {
             // 임시 파일 정리
@@ -512,22 +555,45 @@ public class CompilerService {
             // 컴파일 프로세스 실행
             ProcessBuilder compilePb = new ProcessBuilder("g++", cppFile.getAbsolutePath(), "-o", "Main");
             Process compileProcess = compilePb.start();
-            compileProcess.waitFor();
+            
+            // 프로세스 출력 수집
+            String[] results = collectProcessOutput(compileProcess, 10); // 10초 타임아웃
+            String stdOut = results[0];
+            String stdErr = results[1];
+            
+            // 프로세스 종료 대기
+            int exitCode = compileProcess.waitFor();
             
             // 컴파일 결과 확인 (종료 코드가 0이 아니면 컴파일 실패)
-            if (compileProcess.exitValue() != 0) {
-                // 오류 메시지 읽기
-                BufferedReader errorReader = new BufferedReader(new InputStreamReader(compileProcess.getErrorStream()));
-                String errorLine;
-                while ((errorLine = errorReader.readLine()) != null) {
-                    output.append(errorLine).append("\n");
+            if (exitCode != 0) {
+                // 오류 출력이 있으면 추가
+                if (!stdErr.isEmpty()) {
+                    output.append(stdErr);
                 }
+                // 표준 출력도 있으면 추가 (일부 컴파일러는 표준 출력으로 오류 메시지를 출력할 수 있음)
+                if (!stdOut.isEmpty()) {
+                    output.append(stdOut);
+                }
+                
+                // 둘 다 비어있으면 기본 메시지
+                if (stdErr.isEmpty() && stdOut.isEmpty()) {
+                    output.append("컴파일 실패 (종료 코드: ").append(exitCode).append(")");
+                }
+                
                 return false;
             }
             
+            // 성공이지만 출력이 있는 경우 (경고 등)
+            if (!stdOut.isEmpty()) {
+                output.append("컴파일러 출력: ").append(stdOut);
+            }
+            
             return true;
+        } catch (TimeoutException e) {
+            output.append("컴파일 시간 초과 (10초)");
+            return false;
         } catch (Exception e) {
-            output.append("컴파일 중 오류 발생: ").append(e.getMessage());
+            output.append("컴파일 중 시스템 오류: ").append(e.getMessage());
             return false;
         } finally {
             // 임시 파일 정리
@@ -554,8 +620,6 @@ public class CompilerService {
                 writer.write(code);
             }
             
-            // 컴파일은 이미 완료되었다고 가정
-            
             // 실행 프로세스 시작
             ProcessBuilder runPb = new ProcessBuilder("./Main");
             Process runProcess = runPb.start();
@@ -569,27 +633,41 @@ public class CompilerService {
                 }
             }
             
-            // 결과 읽기 (비동기)
-            ExecutorService executor = Executors.newSingleThreadExecutor();
-            Future<String> future = executor.submit(() -> {
-                StringBuilder result = new StringBuilder();
-                try (BufferedReader reader = new BufferedReader(new InputStreamReader(runProcess.getInputStream()))) {
-                    String line;
-                    while ((line = reader.readLine()) != null) {
-                        result.append(line).append("\n");
-                    }
-                }
-                return result.toString();
-            });
+            // 프로세스 출력 수집 (5초 타임아웃)
+            String[] results = collectProcessOutput(runProcess, 5);
+            String stdOut = results[0];
+            String stdErr = results[1];
             
-            // 최대 5초 실행 시간 제한
-            String result = future.get(5, TimeUnit.SECONDS);
-            output.append("실행 결과: ").append(result);
+            // 프로세스 종료 대기
+            int exitCode = runProcess.waitFor();
             
-            executor.shutdown();
+            // 실행 결과 및 오류 기록
+            output.append("실행 결과 (종료 코드: ").append(exitCode).append("):\n");
+            
+            if (!stdOut.isEmpty()) {
+                output.append("표준 출력:\n").append(stdOut);
+            } else {
+                output.append("(표준 출력 없음)\n");
+            }
+            
+            // 오류가 있는 경우 추가
+            if (!stdErr.isEmpty()) {
+                output.append("\n오류 출력:\n").append(stdErr);
+                return false;
+            }
+            
+            // 종료 코드가 0이 아니면 실행 실패로 간주
+            if (exitCode != 0) {
+                output.append("\n비정상 종료: 종료 코드 ").append(exitCode);
+                return false;
+            }
+            
             return true;
+        } catch (TimeoutException e) {
+            output.append("실행 시간 초과 (5초)");
+            return false;
         } catch (Exception e) {
-            output.append("실행 중 오류 발생: ").append(e.getMessage());
+            output.append("실행 중 시스템 오류: ").append(e.getMessage());
             return false;
         } finally {
             // 임시 파일 정리
@@ -730,15 +808,22 @@ public class CompilerService {
         boolean isAllPass = results.stream().allMatch(result -> result.getStatus() == ResultStatus.CORRECT);
         
         // 5. 최대 실행 시간과 메모리 사용량 계산
-        Double maxExecutionTime = results.stream()
-                .mapToDouble(ResultDto::getExecutionTime)
-                .max()
-                .orElse(0.0);
-        
-        Double maxMemoryUsage = results.stream()
-                .mapToDouble(ResultDto::getUsedMemory)
-                .max()
-                .orElse(0.0);
+        Double maxExecutionTime = 0.0;
+        Double maxMemoryUsage = 0.0;
+
+        if (results != null && !results.isEmpty()) {
+            maxExecutionTime = results.stream()
+                    .filter(result -> result != null)
+                    .mapToDouble(result -> result.getExecutionTime() != null ? result.getExecutionTime() : 0.0)
+                    .max()
+                    .orElse(0.0);
+            
+            maxMemoryUsage = results.stream()
+                    .filter(result -> result != null)
+                    .mapToDouble(result -> result.getUsedMemory() != null ? result.getUsedMemory() : 0.0)
+                    .max()
+                    .orElse(0.0);
+        }
         
         // 6. 실행 결과 문자열 생성
         StringBuilder resultDetails = new StringBuilder();
@@ -820,17 +905,13 @@ public class CompilerService {
                     isCompiled = checkJavaCompilation(code, output);
                     if (!isCompiled) {
                         status = SolutionStatus.COMPILATION_ERROR;
-                        output.append("\n컴파일 에러 발생: 코드를 확인해 주세요.\n");
-                        output.append("세미콜론 누락, 괄호 불일치, 메서드 이름 오타 등이 흔한 원인입니다.\n");
-                        throw new CompilerException("자바 컴파일 에러가 발생했습니다", status, output.toString(), code, language);
+                        throw new CompilerException("자바 컴파일 에러", status, output.toString(), code, language);
                     }
                     output.append("컴파일 성공. 실행 시작...\n\n");
                     isExecuted = checkJavaExecution(code, simpleInput, output);
                     if (!isExecuted) {
                         status = SolutionStatus.RUNTIME_ERROR;
-                        output.append("\n런타임 에러 발생: 실행 중 오류가 발생했습니다.\n");
-                        output.append("배열 인덱스 범위, null 참조, 형변환 오류 등을 확인해 보세요.\n");
-                        throw new CompilerException("자바 실행 오류가 발생했습니다", status, output.toString(), code, language);
+                        throw new CompilerException("자바 실행 오류", status, output.toString(), code, language);
                     }
                     break;
                     
@@ -840,9 +921,7 @@ public class CompilerService {
                     isExecuted = checkPythonExecution(code, simpleInput, output);
                     if (!isExecuted) {
                         status = SolutionStatus.RUNTIME_ERROR;
-                        output.append("\n실행 오류 발생: 코드를 확인해 주세요.\n");
-                        output.append("들여쓰기, 변수 이름 오타, 라이브러리 사용 방법 등을 확인해 보세요.\n");
-                        throw new CompilerException("파이썬 실행 오류가 발생했습니다", status, output.toString(), code, language);
+                        throw new CompilerException("파이썬 실행 오류", status, output.toString(), code, language);
                     }
                     break;
                     
@@ -851,24 +930,20 @@ public class CompilerService {
                     isCompiled = checkCppCompilation(code, output);
                     if (!isCompiled) {
                         status = SolutionStatus.COMPILATION_ERROR;
-                        output.append("\n컴파일 에러 발생: 코드를 확인해 주세요.\n");
-                        output.append("세미콜론 누락, 헤더 파일 포함, 변수 초기화 등이 흔한 원인입니다.\n");
-                        throw new CompilerException("C++ 컴파일 에러가 발생했습니다", status, output.toString(), code, language);
+                        throw new CompilerException("C++ 컴파일 에러", status, output.toString(), code, language);
                     }
                     output.append("컴파일 성공! 실행 시작...\n\n");
                     isExecuted = checkCppExecution(code, simpleInput, output);
                     if (!isExecuted) {
                         status = SolutionStatus.RUNTIME_ERROR;
-                        output.append("\n런타임 에러 발생: 실행 중 오류가 발생했습니다.\n");
-                        output.append("메모리 관리, 세그먼테이션 오류, 포인터 사용 등을 확인해 보세요.\n");
-                        throw new CompilerException("C++ 실행 오류가 발생했습니다", status, output.toString(), code, language);
+                        throw new CompilerException("C++ 실행 오류", status, output.toString(), code, language);
                     }
                     break;
                     
                 default:
                     output.append("지원하지 않는 언어입니다: ").append(language);
                     output.append("\n현재 지원 언어: java, python, c++");
-                    throw new CompilerException("지원하지 않는 언어입니다", SolutionStatus.COMPILATION_ERROR, 
+                    throw new CompilerException("지원하지 않는 언어", SolutionStatus.COMPILATION_ERROR, 
                           "언어: " + language + "는 지원되지 않습니다. 지원 언어: java, python, c++", code, language);
             }
             
@@ -881,9 +956,8 @@ public class CompilerService {
             throw e;
         } catch (Exception e) {
             // 예상치 못한 예외 처리
-            output.append("예상치 못한 오류: ").append(e.getMessage()).append("\n");
-            output.append("시스템 관리자에게 문의하세요.");
-            throw new CompilerException("알 수 없는 오류가 발생했습니다", SolutionStatus.RUNTIME_ERROR, 
+            output.append("예상치 못한 오류: ").append(e.getMessage());
+            throw new CompilerException("알 수 없는 오류", SolutionStatus.RUNTIME_ERROR, 
                                       e.getMessage(), code, language);
         }
         
@@ -959,13 +1033,14 @@ public class CompilerService {
      * @return 에러 응답 DTO
      */
     public CompilerErrorResponseDto handleCompilerException(CompilerException e) {
+        // 여기서는 메시지를 가공하지 않고 원본 컴파일러 오류를 그대로 전달
         return CompilerErrorResponseDto.builder()
             .status(400)
             .error(e.getErrorType() != null ? e.getErrorType().name() : "Compilation Failed")
             .message(e.getMessage())
             .timestamp(LocalDateTime.now())
             .errorType(e.getErrorType() != null ? e.getErrorType().name() : "COMPILATION_ERROR")
-            .errorDetails(e.getErrorDetails())
+            .errorDetails(e.getErrorDetails()) // 원본 컴파일러 오류 메시지
             .code(e.getCode())
             .language(e.getLanguage())
             .build();
@@ -1042,6 +1117,61 @@ public class CompilerService {
             return handleCompilerException(e);
         } catch (Exception e) {
             return handleGeneralException(e, saveSolutionDto.getCode(), saveSolutionDto.getLanguage(), false);
+        }
+    }
+
+    /**
+     * 프로세스의 표준 출력과 표준 에러를 모두 수집하는 유틸리티 메소드
+     * 
+     * @param process 실행된 프로세스
+     * @param timeout 타임아웃 시간 (초)
+     * @return 출력 및 에러 수집 결과 (String[] 배열로 [표준출력, 표준에러] 형태)
+     * @throws TimeoutException 타임아웃 발생 시
+     * @throws ExecutionException 실행 중 예외 발생 시
+     * @throws InterruptedException 인터럽트 발생 시
+     */
+    private String[] collectProcessOutput(Process process, int timeout) 
+            throws TimeoutException, ExecutionException, InterruptedException {
+        
+        // 표준 출력과 에러를 동시에 읽기 위한 스레드 풀
+        ExecutorService executor = Executors.newFixedThreadPool(2);
+        
+        // 표준 출력 읽기
+        Future<String> stdOutFuture = executor.submit(() -> {
+            StringBuilder result = new StringBuilder();
+            try (BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()))) {
+                String line;
+                while ((line = reader.readLine()) != null) {
+                    result.append(line).append("\n");
+                }
+            }
+            return result.toString();
+        });
+        
+        // 표준 에러 읽기
+        Future<String> stdErrFuture = executor.submit(() -> {
+            StringBuilder result = new StringBuilder();
+            try (BufferedReader reader = new BufferedReader(new InputStreamReader(process.getErrorStream()))) {
+                String line;
+                while ((line = reader.readLine()) != null) {
+                    result.append(line).append("\n");
+                }
+            }
+            return result.toString();
+        });
+        
+        try {
+            // 주어진 타임아웃 내에 두 스트림의 결과 획득
+            String stdOut = stdOutFuture.get(timeout, TimeUnit.SECONDS);
+            String stdErr = stdErrFuture.get(timeout, TimeUnit.SECONDS);
+            
+            executor.shutdown();
+            return new String[] { stdOut, stdErr };
+        } catch (TimeoutException e) {
+            // 타임아웃 발생 시 프로세스와 스레드 풀 강제 종료
+            process.destroyForcibly();
+            executor.shutdownNow();
+            throw e;
         }
     }
 } 
