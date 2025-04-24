@@ -18,6 +18,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import lombok.extern.slf4j.Slf4j;
+import java.time.LocalDateTime;
 
 /**
  * 코드 컴파일 및 실행을 담당하는 컨트롤러
@@ -56,13 +57,8 @@ public class CompilerController {
     @ApiResponses(value = {
         @ApiResponse(
             responseCode = "200", 
-            description = "코드 컴파일 및 실행 성공", 
-            content = @Content(schema = @Schema(implementation = CompileResultDto.class))
-        ),
-        @ApiResponse(
-            responseCode = "400", 
-            description = "컴파일 또는 실행 중 오류 발생", 
-            content = @Content(schema = @Schema(implementation = CompilerErrorResponseDto.class))
+            description = "코드 컴파일 및 실행 성공 또는 컴파일/실행 중 오류 발생", 
+            content = @Content(schema = @Schema(oneOf = {CompileResultDto.class, CompilerErrorResponseDto.class}))
         ),
         @ApiResponse(
             responseCode = "500", 
@@ -70,7 +66,7 @@ public class CompilerController {
             content = @Content(schema = @Schema(implementation = CompilerErrorResponseDto.class))
         )
     })
-    public ResponseEntity<CompileResultDto> compileCode(
+    public ResponseEntity<?> compileCode(
             @Parameter(description = "코드 제출 정보 (사용자 ID, 문제 ID, 코드, 언어, 해결 시간)", 
                       required = true) 
             @RequestBody CodeSubmissionDto submissionDto) {
@@ -80,14 +76,50 @@ public class CompilerController {
             submissionDto.getProblemId(), 
             submissionDto.getLanguage());
             
-        // 기본적인 null 체크와 빈 문자열 체크만 수행
-        if (submissionDto.getCode() == null || submissionDto.getCode().trim().isEmpty()) {
-            throw new CompilerException("코드는 비어있을 수 없습니다", Solution.SolutionStatus.COMPILATION_ERROR);
+        try {
+            // 기본적인 null 체크와 빈 문자열 체크만 수행
+            if (submissionDto.getCode() == null || submissionDto.getCode().trim().isEmpty()) {
+                return ResponseEntity.ok(CompilerErrorResponseDto.builder()
+                    .status(400)
+                    .error("Invalid Input")
+                    .message("코드는 비어있을 수 없습니다")
+                    .timestamp(LocalDateTime.now())
+                    .errorType("COMPILATION_ERROR")
+                    .errorDetails("코드가 비어있습니다. 코드를 입력해주세요.")
+                    .code("")
+                    .language(submissionDto.getLanguage())
+                    .build());
+            }
+            
+            // 코드 컴파일 및 실행 (저장하지 않음)
+            CompileResultDto result = compilerService.compileCode(submissionDto);
+            return ResponseEntity.ok(result);
+        } catch (CompilerException e) {
+            // 컴파일러 예외를 응답 본문에 포함하여 HTTP 200으로 반환
+            return ResponseEntity.ok(CompilerErrorResponseDto.builder()
+                .status(400)
+                .error(e.getErrorType() != null ? e.getErrorType().name() : "Compilation Failed")
+                .message(e.getMessage())
+                .timestamp(LocalDateTime.now())
+                .errorType(e.getErrorType() != null ? e.getErrorType().name() : "COMPILATION_ERROR")
+                .errorDetails(e.getErrorDetails())
+                .code(e.getCode())
+                .language(e.getLanguage())
+                .build());
+        } catch (Exception e) {
+            // 기타 예외는 서버 오류로 처리하지만 HTTP 200 반환
+            log.error("Unexpected error during compilation:", e);
+            return ResponseEntity.ok(CompilerErrorResponseDto.builder()
+                .status(500)
+                .error("Internal Server Error")
+                .message("코드 컴파일 중 예상치 못한 오류가 발생했습니다")
+                .timestamp(LocalDateTime.now())
+                .errorType("SERVER_ERROR")
+                .errorDetails(e.getMessage())
+                .code(submissionDto.getCode())
+                .language(submissionDto.getLanguage())
+                .build());
         }
-        
-        // 코드 컴파일 및 실행 (저장하지 않음)
-        CompileResultDto result = compilerService.compileCode(submissionDto);
-        return ResponseEntity.ok(result);
     }
     
     /**
@@ -104,13 +136,8 @@ public class CompilerController {
     @ApiResponses(value = {
         @ApiResponse(
             responseCode = "200", 
-            description = "솔루션 저장 성공", 
-            content = @Content(schema = @Schema(implementation = Solution.class))
-        ),
-        @ApiResponse(
-            responseCode = "400", 
-            description = "잘못된 요청", 
-            content = @Content(schema = @Schema(implementation = CompilerErrorResponseDto.class))
+            description = "솔루션 저장 성공 또는 저장 중 오류 발생", 
+            content = @Content(schema = @Schema(oneOf = {Solution.class, CompilerErrorResponseDto.class}))
         ),
         @ApiResponse(
             responseCode = "500", 
@@ -118,7 +145,7 @@ public class CompilerController {
             content = @Content(schema = @Schema(implementation = CompilerErrorResponseDto.class))
         )
     })
-    public ResponseEntity<Solution> saveSolution(
+    public ResponseEntity<?> saveSolution(
             @Parameter(description = "Solution 저장 요청 정보", required = true) 
             @RequestBody SaveSolutionDto saveSolutionDto) {
         // 사용자 제출 정보 로깅
@@ -126,14 +153,50 @@ public class CompilerController {
             saveSolutionDto.getUserId(), 
             saveSolutionDto.getProblemId(), 
             saveSolutionDto.getLanguage());
-            
-        // 기본적인 null 체크와 빈 문자열 체크만 수행
-        if (saveSolutionDto.getCode() == null || saveSolutionDto.getCode().trim().isEmpty()) {
-            throw new CompilerException("코드는 비어있을 수 없습니다", Solution.SolutionStatus.COMPILATION_ERROR);
+        
+        try {
+            // 기본적인 null 체크와 빈 문자열 체크만 수행
+            if (saveSolutionDto.getCode() == null || saveSolutionDto.getCode().trim().isEmpty()) {
+                return ResponseEntity.ok(CompilerErrorResponseDto.builder()
+                    .status(400)
+                    .error("Invalid Input")
+                    .message("코드는 비어있을 수 없습니다")
+                    .timestamp(LocalDateTime.now())
+                    .errorType("COMPILATION_ERROR")
+                    .errorDetails("코드가 비어있습니다. 코드를 입력해주세요.")
+                    .code("")
+                    .language(saveSolutionDto.getLanguage())
+                    .build());
+            }
+                
+            // Solution 저장
+            Solution solution = compilerService.saveSolution(saveSolutionDto);
+            return ResponseEntity.ok(solution);
+        } catch (CompilerException e) {
+            // 컴파일러 예외를 응답 본문에 포함하여 HTTP 200으로 반환
+            return ResponseEntity.ok(CompilerErrorResponseDto.builder()
+                .status(400)
+                .error(e.getErrorType() != null ? e.getErrorType().name() : "Save Failed")
+                .message(e.getMessage())
+                .timestamp(LocalDateTime.now())
+                .errorType(e.getErrorType() != null ? e.getErrorType().name() : "SAVE_ERROR")
+                .errorDetails(e.getErrorDetails())
+                .code(e.getCode())
+                .language(e.getLanguage())
+                .build());
+        } catch (Exception e) {
+            // 기타 예외는 서버 오류로 처리하지만 HTTP 200 반환
+            log.error("Unexpected error during solution save:", e);
+            return ResponseEntity.ok(CompilerErrorResponseDto.builder()
+                .status(500)
+                .error("Internal Server Error")
+                .message("솔루션 저장 중 예상치 못한 오류가 발생했습니다")
+                .timestamp(LocalDateTime.now())
+                .errorType("SERVER_ERROR")
+                .errorDetails(e.getMessage())
+                .code(saveSolutionDto.getCode())
+                .language(saveSolutionDto.getLanguage())
+                .build());
         }
-            
-        // Solution 저장
-        Solution solution = compilerService.saveSolution(saveSolutionDto);
-        return ResponseEntity.ok(solution);
     }
 } 
