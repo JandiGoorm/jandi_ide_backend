@@ -1,5 +1,6 @@
 package com.webproject.jandi_ide_backend.algorithm.solution.entity;
 
+import com.fasterxml.jackson.annotation.JsonBackReference;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.webproject.jandi_ide_backend.user.entity.User;
 import jakarta.persistence.*;
@@ -24,7 +25,7 @@ public class Solution {
     private Long id;
 
     // 제출한 사용자와의 관계 설정
-    @JsonIgnore
+    @JsonBackReference
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id", nullable = false)
     private User user;
