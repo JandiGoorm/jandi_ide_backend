@@ -30,6 +30,10 @@ public class Solution {
     // 문제 ID 저장
     @Column(name = "problem_id", nullable = false)
     private Integer problemId;
+    
+    // 문제집 ID 저장
+    @Column(name = "problem_set_id")
+    private Long problemSetId;
 
     // 사용자가 작성한 코드 (풀이 내용)
     @Column(name = "code", columnDefinition = "TEXT", nullable = false)
