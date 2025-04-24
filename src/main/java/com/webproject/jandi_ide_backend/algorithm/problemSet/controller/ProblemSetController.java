@@ -1,10 +1,6 @@
 package com.webproject.jandi_ide_backend.algorithm.problemSet.controller;
 
-import com.webproject.jandi_ide_backend.algorithm.problemSet.dto.ReqPostProblemSetDTO;
-import com.webproject.jandi_ide_backend.algorithm.problemSet.dto.ReqUpdateProblemSetDTO;
-import com.webproject.jandi_ide_backend.algorithm.problemSet.dto.RespDetailProblemSet;
-import com.webproject.jandi_ide_backend.algorithm.problemSet.dto.RespProblemSetDTO;
-import com.webproject.jandi_ide_backend.algorithm.problemSet.dto.RespSpecProblemSetDTO;
+import com.webproject.jandi_ide_backend.algorithm.problemSet.dto.*;
 import com.webproject.jandi_ide_backend.algorithm.problemSet.service.ProblemSetService;
 import com.webproject.jandi_ide_backend.global.error.CustomErrorCodes;
 import com.webproject.jandi_ide_backend.global.error.CustomException;
@@ -21,8 +17,6 @@ import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-
-import java.util.List;
 
 @Tag(name="ProblemSet",description = "문제집 관련 API")
 @RestController
@@ -69,15 +63,17 @@ public class ProblemSetController {
                     responseCode = "200",
                     description = "조회 성공",
                     content = @Content(
-                            array = @ArraySchema(schema = @Schema(implementation = RespProblemSetDTO.class))
+                            array = @ArraySchema(schema = @Schema(implementation = RespProblemSetPageDTO.class))
                     )
             )
     })
-    public List<RespProblemSetDTO> readProblemSet(
-            @Parameter(hidden = true) @RequestHeader("Authorization") String token
+    public RespProblemSetPageDTO readProblemSet(
+            @Parameter(hidden = true) @RequestHeader("Authorization") String token,
+            @RequestParam(value="page",defaultValue = "0") Integer page,
+            @RequestParam(value="size",defaultValue = "10") Integer size
     ) {
         String githubId = getGithubIdFromToken(token);
-        return problemSetService.readProblemSet(githubId);
+        return problemSetService.readProblemSet(githubId,page,size);
     }
 
     @GetMapping("/{id}")

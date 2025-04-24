@@ -149,7 +149,7 @@ public class UserController {
     @Operation(summary = "특정 유저의 대표 프로젝트 조회", description = "특정 유저의 대표 프로젝트를 조회합니다.", security = { @SecurityRequirement(name = "Authorization") })
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "조회 성공",
-                    content = @Content(array = @ArraySchema(schema = @Schema(implementation = ProjectPageResponseDTO.class)))
+                    content = @Content(schema = @Schema(implementation = ProjectPageResponseDTO.class))
             ),
     })
     public ResponseEntity<ProjectPageResponseDTO> getProjects(
