@@ -2,7 +2,9 @@ package com.webproject.jandi_ide_backend.compiler.controller;
 
 import com.webproject.jandi_ide_backend.algorithm.solution.entity.Solution;
 import com.webproject.jandi_ide_backend.compiler.dto.CodeSubmissionDto;
+import com.webproject.jandi_ide_backend.compiler.dto.CompileResultDto;
 import com.webproject.jandi_ide_backend.compiler.dto.CompilerErrorResponseDto;
+import com.webproject.jandi_ide_backend.compiler.dto.SaveSolutionDto;
 import com.webproject.jandi_ide_backend.compiler.exception.CompilerException;
 import com.webproject.jandi_ide_backend.compiler.service.CompilerService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -43,23 +45,21 @@ public class CompilerController {
     }
     
     /**
-     * 코드를 제출받아 컴파일 및 실행 후 결과를 반환합니다.
-     * 문제 ID가 0인 경우에는 테스트 모드로 간주하여 컴파일과 실행 결과만 확인합니다.
-     * 문제 ID가 0이 아닌 경우에는 해당 문제의 테스트 케이스로 코드를 검증합니다.
+     * 코드를 컴파일하고 실행하여 결과만 반환합니다. 솔루션을 저장하지 않습니다.
      * 
-     * @param submissionDto 제출된 코드 정보 (사용자 ID, 문제 ID, 코드, 언어, 해결 시간)
-     * @return 실행 결과 또는 오류 정보를 포함한 응답
+     * @param submissionDto 제출된 코드 정보
+     * @return 실행 결과를 포함한 응답
      */
-    @PostMapping("/submit")
+    @PostMapping("/compile")
     @Operation(
-        summary = "코드 제출 및 실행",
-        description = "사용자가 작성한 코드를 컴파일하고 실행하여 결과를 반환합니다. 문제 ID가 0인 경우는 테스트 모드로 동작합니다."
+        summary = "코드 컴파일 및 실행",
+        description = "사용자가 작성한 코드를 컴파일하고 실행하여 결과만 반환합니다. 솔루션을 저장하지 않습니다."
     )
     @ApiResponses(value = {
         @ApiResponse(
             responseCode = "200", 
             description = "코드 컴파일 및 실행 성공", 
-            content = @Content(schema = @Schema(implementation = Solution.class))
+            content = @Content(schema = @Schema(implementation = CompileResultDto.class))
         ),
         @ApiResponse(
             responseCode = "400", 
@@ -72,21 +72,63 @@ public class CompilerController {
             content = @Content(schema = @Schema(implementation = CompilerErrorResponseDto.class))
         )
     })
-    public ResponseEntity<Solution> submitCode(
+    public ResponseEntity<CompileResultDto> compileCode(
             @Parameter(description = "코드 제출 정보 (사용자 ID, 문제 ID, 코드, 언어, 해결 시간)", 
                       required = true) 
             @RequestBody CodeSubmissionDto submissionDto) {
         // 사용자 제출 정보 로깅
-        log.debug("코드 제출: 사용자={}, 문제={}, 언어={}", 
+        log.debug("코드 컴파일: 사용자={}, 문제={}, 언어={}", 
             submissionDto.getUserId(), 
             submissionDto.getProblemId(), 
             submissionDto.getLanguage());
             
-        // 코드 분석 - 간단한 사전 검사 (컴파일 오류가 명백한 경우)
+        // 코드 유효성 검사
         validateCode(submissionDto.getCode(), submissionDto.getLanguage());
         
-        // 코드 컴파일 및 실행
-        Solution solution = compilerService.submitCode(submissionDto);
+        // 코드 컴파일 및 실행 (저장하지 않음)
+        CompileResultDto result = compilerService.compileCode(submissionDto);
+        return ResponseEntity.ok(result);
+    }
+    
+    /**
+     * 코드 실행 결과를 Solution 테이블에 저장합니다.
+     * 
+     * @param saveSolutionDto Solution 저장 요청 정보
+     * @return 저장된 Solution 객체
+     */
+    @PostMapping("/save-solution")
+    @Operation(
+        summary = "솔루션 저장",
+        description = "코드 실행 결과를 Solution 테이블에 저장합니다."
+    )
+    @ApiResponses(value = {
+        @ApiResponse(
+            responseCode = "200", 
+            description = "솔루션 저장 성공", 
+            content = @Content(schema = @Schema(implementation = Solution.class))
+        ),
+        @ApiResponse(
+            responseCode = "400", 
+            description = "잘못된 요청", 
+            content = @Content(schema = @Schema(implementation = CompilerErrorResponseDto.class))
+        ),
+        @ApiResponse(
+            responseCode = "500", 
+            description = "서버 내부 오류", 
+            content = @Content(schema = @Schema(implementation = CompilerErrorResponseDto.class))
+        )
+    })
+    public ResponseEntity<Solution> saveSolution(
+            @Parameter(description = "Solution 저장 요청 정보", required = true) 
+            @RequestBody SaveSolutionDto saveSolutionDto) {
+        // 사용자 제출 정보 로깅
+        log.debug("솔루션 저장: 사용자={}, 문제={}, 언어={}", 
+            saveSolutionDto.getUserId(), 
+            saveSolutionDto.getProblemId(), 
+            saveSolutionDto.getLanguage());
+            
+        // Solution 저장
+        Solution solution = compilerService.saveSolution(saveSolutionDto);
         return ResponseEntity.ok(solution);
     }
     

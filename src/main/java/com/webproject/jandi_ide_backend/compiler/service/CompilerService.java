@@ -8,8 +8,10 @@ import com.webproject.jandi_ide_backend.algorithm.solution.service.SolutionServi
 import com.webproject.jandi_ide_backend.algorithm.testCase.entity.TestCase;
 import com.webproject.jandi_ide_backend.algorithm.testCase.service.TestCaseService;
 import com.webproject.jandi_ide_backend.compiler.dto.CodeSubmissionDto;
+import com.webproject.jandi_ide_backend.compiler.dto.CompileResultDto;
 import com.webproject.jandi_ide_backend.compiler.dto.ResultDto;
 import com.webproject.jandi_ide_backend.compiler.dto.ResultStatus;
+import com.webproject.jandi_ide_backend.compiler.dto.SaveSolutionDto;
 import com.webproject.jandi_ide_backend.compiler.exception.CompilerException;
 import com.webproject.jandi_ide_backend.user.entity.User;
 import com.webproject.jandi_ide_backend.user.service.UserService;
@@ -682,5 +684,230 @@ public class CompilerService {
         }
         
         return details.toString();
+    }
+
+    /**
+     * 코드를 컴파일하고 실행하여 결과만 반환합니다. 솔루션을 저장하지 않습니다.
+     * 
+     * @param submissionDto 코드 제출 정보
+     * @return 컴파일 및 실행 결과
+     */
+    public CompileResultDto compileCode(CodeSubmissionDto submissionDto) {
+        // 1. 필요한 정보 조회
+        User user = userService.getUserById(submissionDto.getUserId());
+        
+        // 문제 ID가 0인 경우 특별 처리 (테스트 모드)
+        if (submissionDto.getProblemId() == 0) {
+            return handleSimpleCompilationTest(user, submissionDto);
+        }
+        
+        // 2. 일반적인 경우: 문제와 테스트 케이스 조회 및 실행
+        Problem problem = problemService.getProblemById(submissionDto.getProblemId().intValue());
+        List<TestCase> testCases = testCaseService.getTestCasesByProblemId(submissionDto.getProblemId().intValue());
+        
+        // 3. 언어별 컴파일러 선택 및 실행
+        List<ResultDto> results = compileAndRun(problem, testCases, submissionDto.getCode(), submissionDto.getLanguage());
+        
+        // 4. 결과 분석
+        boolean isAllPass = results.stream().allMatch(result -> result.getStatus() == ResultStatus.CORRECT);
+        
+        // 5. 최대 실행 시간과 메모리 사용량 계산
+        Double maxExecutionTime = results.stream()
+                .mapToDouble(ResultDto::getExecutionTime)
+                .max()
+                .orElse(0.0);
+        
+        Double maxMemoryUsage = results.stream()
+                .mapToDouble(ResultDto::getUsedMemory)
+                .max()
+                .orElse(0.0);
+        
+        // 6. 실행 결과 문자열 생성
+        StringBuilder resultDetails = new StringBuilder();
+        for (ResultDto result : results) {
+            resultDetails.append("테스트 ").append(result.getTestNum()).append(": ")
+                    .append(result.getStatus()).append("\n")
+                    .append("실행 시간: ").append(result.getExecutionTime()).append("ms\n")
+                    .append("메모리 사용량: ").append(result.getUsedMemory()).append("MB\n\n");
+        }
+        
+        // 7. 결과 상태 설정
+        SolutionStatus status;
+        if (isAllPass) {
+            status = SolutionStatus.CORRECT;
+        } else {
+            // 오류 유형에 따른 예외 발생
+            if (hasCompilationError(results)) {
+                status = SolutionStatus.COMPILATION_ERROR;
+                String errorDetails = getErrorDetails(results);
+                throw new CompilerException("컴파일 에러가 발생했습니다", status, errorDetails, 
+                        submissionDto.getCode(), submissionDto.getLanguage());
+            } else if (hasRuntimeError(results)) {
+                status = SolutionStatus.RUNTIME_ERROR;
+                String errorDetails = getErrorDetails(results);
+                throw new CompilerException("런타임 에러가 발생했습니다", status, errorDetails, 
+                        submissionDto.getCode(), submissionDto.getLanguage());
+            } else if (hasTimeoutError(results)) {
+                status = SolutionStatus.TIMEOUT;
+                throw new CompilerException("시간 초과가 발생했습니다", status, "실행 시간이 제한 시간을 초과했습니다", 
+                        submissionDto.getCode(), submissionDto.getLanguage());
+            } else if (hasMemoryLimitError(results)) {
+                status = SolutionStatus.MEMORY_LIMIT;
+                throw new CompilerException("메모리 초과가 발생했습니다", status, "프로그램이 메모리 제한을 초과했습니다", 
+                        submissionDto.getCode(), submissionDto.getLanguage());
+            } else {
+                status = SolutionStatus.WRONG_ANSWER;
+                String errorDetails = getWrongAnswerDetails(results);
+                throw new CompilerException("틀린 답안입니다", status, errorDetails, 
+                        submissionDto.getCode(), submissionDto.getLanguage());
+            }
+        }
+        
+        // 8. 결과 반환
+        return CompileResultDto.builder()
+                .status(status)
+                .isCorrect(isAllPass)
+                .resultDetails(resultDetails.toString())
+                .executionTime(maxExecutionTime.intValue())
+                .memoryUsage(maxMemoryUsage.intValue())
+                .testResults(results)
+                .code(submissionDto.getCode())
+                .language(submissionDto.getLanguage())
+                .build();
+    }
+    
+    /**
+     * 테스트 모드에서 코드 컴파일 및 실행 결과만 반환합니다.
+     */
+    private CompileResultDto handleSimpleCompilationTest(User user, CodeSubmissionDto submissionDto) {
+        String code = submissionDto.getCode();
+        String language = submissionDto.getLanguage();
+        
+        // 기본 실행을 위한 간단한 입력값 생성 - 콤마로 구분된 입력으로 변경
+        String simpleInput = "1,2";
+        
+        // 결과를 저장할 객체
+        StringBuilder output = new StringBuilder();
+        Double executionTime = 0.0;
+        Double memoryUsage = 0.0;
+        boolean isCompiled = false;
+        boolean isExecuted = false;
+        SolutionStatus status = SolutionStatus.SUBMITTED;
+        
+        try {
+            // 언어별 처리
+            switch (language.toLowerCase()) {
+                case "java":
+                    output.append("자바 코드 컴파일 시작...\n");
+                    isCompiled = checkJavaCompilation(code, output);
+                    if (!isCompiled) {
+                        status = SolutionStatus.COMPILATION_ERROR;
+                        output.append("\n컴파일 에러 발생: 코드를 확인해 주세요.\n");
+                        output.append("세미콜론 누락, 괄호 불일치, 메서드 이름 오타 등이 흔한 원인입니다.\n");
+                        throw new CompilerException("자바 컴파일 에러가 발생했습니다", status, output.toString(), code, language);
+                    }
+                    output.append("컴파일 성공. 실행 시작...\n\n");
+                    isExecuted = checkJavaExecution(code, simpleInput, output);
+                    if (!isExecuted) {
+                        status = SolutionStatus.RUNTIME_ERROR;
+                        output.append("\n런타임 에러 발생: 실행 중 오류가 발생했습니다.\n");
+                        output.append("배열 인덱스 범위, null 참조, 형변환 오류 등을 확인해 보세요.\n");
+                        throw new CompilerException("자바 실행 오류가 발생했습니다", status, output.toString(), code, language);
+                    }
+                    break;
+                    
+                case "python":
+                    output.append("파이썬 코드 실행 시작...\n");
+                    isCompiled = true; // Python은 인터프리터 언어라 컴파일 단계가 없음
+                    isExecuted = checkPythonExecution(code, simpleInput, output);
+                    if (!isExecuted) {
+                        status = SolutionStatus.RUNTIME_ERROR;
+                        output.append("\n실행 오류 발생: 코드를 확인해 주세요.\n");
+                        output.append("들여쓰기, 변수 이름 오타, 라이브러리 사용 방법 등을 확인해 보세요.\n");
+                        throw new CompilerException("파이썬 실행 오류가 발생했습니다", status, output.toString(), code, language);
+                    }
+                    break;
+                    
+                case "c++":
+                    output.append("C++ 코드 컴파일 시작...\n");
+                    isCompiled = checkCppCompilation(code, output);
+                    if (!isCompiled) {
+                        status = SolutionStatus.COMPILATION_ERROR;
+                        output.append("\n컴파일 에러 발생: 코드를 확인해 주세요.\n");
+                        output.append("세미콜론 누락, 헤더 파일 포함, 변수 초기화 등이 흔한 원인입니다.\n");
+                        throw new CompilerException("C++ 컴파일 에러가 발생했습니다", status, output.toString(), code, language);
+                    }
+                    output.append("컴파일 성공! 실행 시작...\n\n");
+                    isExecuted = checkCppExecution(code, simpleInput, output);
+                    if (!isExecuted) {
+                        status = SolutionStatus.RUNTIME_ERROR;
+                        output.append("\n런타임 에러 발생: 실행 중 오류가 발생했습니다.\n");
+                        output.append("메모리 관리, 세그먼테이션 오류, 포인터 사용 등을 확인해 보세요.\n");
+                        throw new CompilerException("C++ 실행 오류가 발생했습니다", status, output.toString(), code, language);
+                    }
+                    break;
+                    
+                default:
+                    output.append("지원하지 않는 언어입니다: ").append(language);
+                    output.append("\n현재 지원 언어: java, python, c++");
+                    throw new CompilerException("지원하지 않는 언어입니다", SolutionStatus.COMPILATION_ERROR, 
+                          "언어: " + language + "는 지원되지 않습니다. 지원 언어: java, python, c++", code, language);
+            }
+            
+            // 상태 결정 - 모든 검사 통과 시 CORRECT
+            status = SolutionStatus.CORRECT;
+            output.append("\n테스트 완료: 코드가 정상적으로 실행되었습니다.\n");
+            
+        } catch (CompilerException e) {
+            // 이미 적절한 CompilerException이 발생한 경우 그대로 전파
+            throw e;
+        } catch (Exception e) {
+            // 예상치 못한 예외 처리
+            output.append("예상치 못한 오류: ").append(e.getMessage()).append("\n");
+            output.append("시스템 관리자에게 문의하세요.");
+            throw new CompilerException("알 수 없는 오류가 발생했습니다", SolutionStatus.RUNTIME_ERROR, 
+                                      e.getMessage(), code, language);
+        }
+        
+        // 결과 반환
+        return CompileResultDto.builder()
+                .status(status)
+                .isCorrect(status == SolutionStatus.CORRECT)
+                .resultDetails(output.toString())
+                .executionTime(executionTime.intValue())
+                .memoryUsage(memoryUsage.intValue())
+                .code(code)
+                .language(language)
+                .build();
+    }
+    
+    /**
+     * Solution 객체를 생성하고 저장합니다.
+     * 
+     * @param saveSolutionDto Solution 저장 요청 정보
+     * @return 저장된 Solution 객체
+     */
+    @Transactional
+    public Solution saveSolution(SaveSolutionDto saveSolutionDto) {
+        // 사용자 조회
+        User user = userService.getUserById(saveSolutionDto.getUserId());
+        
+        // Solution 객체 생성
+        Solution solution = new Solution();
+        solution.setUser(user);
+        solution.setProblemId(saveSolutionDto.getProblemId());
+        solution.setProblemSetId(saveSolutionDto.getProblemSetId());
+        solution.setCode(saveSolutionDto.getCode());
+        solution.setLanguage(saveSolutionDto.getLanguage());
+        solution.setSolvingTime(saveSolutionDto.getSolvingTime());
+        solution.setIsCorrect(saveSolutionDto.getIsCorrect());
+        solution.setAdditionalInfo(saveSolutionDto.getAdditionalInfo());
+        solution.setMemoryUsage(saveSolutionDto.getMemoryUsage());
+        solution.setExecutionTime(saveSolutionDto.getExecutionTime());
+        solution.setStatus(saveSolutionDto.getStatus());
+        solution.setDescription(saveSolutionDto.getDescription());
+        
+        // Solution 저장 및 반환
+        return solutionService.saveSolution(solution);
     }
 } 
