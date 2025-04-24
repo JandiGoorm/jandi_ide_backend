@@ -39,4 +39,76 @@ public class CompilerErrorResponseDto {
     
     @Schema(description = "사용 언어", example = "java")
     private String language;
+    
+    // Custom builder implementation to ensure compatibility
+    public static class CompilerErrorResponseDtoBuilder {
+        private int status;
+        private String error;
+        private String message;
+        private LocalDateTime timestamp;
+        private String errorType;
+        private String errorDetails;
+        private String code;
+        private String language;
+        
+        public CompilerErrorResponseDtoBuilder() {
+        }
+        
+        public CompilerErrorResponseDtoBuilder status(int status) {
+            this.status = status;
+            return this;
+        }
+        
+        public CompilerErrorResponseDtoBuilder error(String error) {
+            this.error = error;
+            return this;
+        }
+        
+        public CompilerErrorResponseDtoBuilder message(String message) {
+            this.message = message;
+            return this;
+        }
+        
+        public CompilerErrorResponseDtoBuilder timestamp(LocalDateTime timestamp) {
+            this.timestamp = timestamp;
+            return this;
+        }
+        
+        public CompilerErrorResponseDtoBuilder errorType(String errorType) {
+            this.errorType = errorType;
+            return this;
+        }
+        
+        public CompilerErrorResponseDtoBuilder errorDetails(String errorDetails) {
+            this.errorDetails = errorDetails;
+            return this;
+        }
+        
+        public CompilerErrorResponseDtoBuilder code(String code) {
+            this.code = code;
+            return this;
+        }
+        
+        public CompilerErrorResponseDtoBuilder language(String language) {
+            this.language = language;
+            return this;
+        }
+        
+        public CompilerErrorResponseDto build() {
+            return new CompilerErrorResponseDto(status, error, message, timestamp, errorType, errorDetails, code, language);
+        }
+    }
+    
+    // Add a constructor that matches the builder's build method
+    private CompilerErrorResponseDto(int status, String error, String message, LocalDateTime timestamp, 
+                                   String errorType, String errorDetails, String code, String language) {
+        this.status = status;
+        this.error = error;
+        this.message = message;
+        this.timestamp = timestamp;
+        this.errorType = errorType;
+        this.errorDetails = errorDetails;
+        this.code = code;
+        this.language = language;
+    }
 } 
