@@ -32,6 +32,12 @@ public class CodeSubmissionDto {
     private Long problemId;
     
     /**
+     * 문제집 ID
+     */
+    @Schema(description = "문제집 ID", example = "1")
+    private Long problemSetId;
+    
+    /**
      * 제출한 코드
      */
     @Schema(description = "제출한 코드", example = "public class Main {\n    public static void main(String[] args) {\n        System.out.println(\"Hello World\");\n    }\n}")
