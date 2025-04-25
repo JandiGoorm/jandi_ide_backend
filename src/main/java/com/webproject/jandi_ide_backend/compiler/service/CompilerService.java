@@ -773,8 +773,8 @@ public class CompilerService {
         for (ResultDto result : results) {
             if (result.getStatus() == ResultStatus.WRONG_ANSWER) {
                 details.append("테스트 케이스 ").append(result.getTestNum()).append(":\n")
-                      .append("- 기대 출력: ").append(result.getExpectedResult()).append("\n")
-                      .append("- 실제 출력: ").append(result.getActualResult()).append("\n");
+                      .append("- 기대 출력:\n").append(result.getExpectedResult()).append("\n")
+                      .append("- 실제 출력:\n").append(result.getActualResult()).append("\n");
             }
         }
         

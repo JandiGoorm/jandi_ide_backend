@@ -186,7 +186,6 @@ public class JavaCompiler {
                     // 결과 저장
                     String resultString = result.toString().trim();
                     log.debug("Raw output capture: [" + resultString + "]");
-                    output.append("실행 결과: ").append(resultString);
                     
                     // 통과 여부 확인
                     boolean isPass = compareOutput(resultString, expectedOutput);
@@ -194,8 +193,8 @@ public class JavaCompiler {
                         output.append("\n테스트 케이스 #").append(i + 1).append(" 통과!");
                     } else {
                         output.append("\n테스트 케이스 #").append(i + 1).append(" 실패");
-                        output.append("\n기대 출력: ").append(expectedOutput);
-                        output.append("\n실제 출력: ");
+                        output.append("\n기대 출력:\n").append(expectedOutput);
+                        output.append("\n실제 출력:\n").append(resultString);
                     }
 
                     results.add(ResultDto.builder()
