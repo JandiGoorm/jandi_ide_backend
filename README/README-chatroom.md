@@ -249,7 +249,8 @@ Authorization: Bearer {jwt-token}
       "roomId": "550e8400-e29b-41d4-a716-446655440000",
       "message": "안녕하세요!",
       "sender": "홍길동",
-      "timestamp": "2023-08-01T12:00:00"
+      "timestamp": "2023-08-01T12:00:00",
+      "profileImage": "https://example.com/profile-images/user123.jpg"
     },
     ...
   ]
@@ -280,7 +281,8 @@ Authorization: Bearer {jwt-token}
         "roomId": "550e8400-e29b-41d4-a716-446655440000",
         "message": "안녕하세요!",
         "sender": "홍길동",
-        "timestamp": "2023-08-01T12:00:00"
+        "timestamp": "2023-08-01T12:00:00",
+        "profileImage": "https://example.com/profile-images/user123.jpg"
       },
       ...
     ],
@@ -335,7 +337,8 @@ Authorization: Bearer {jwt-token}
       "roomId": "550e8400-e29b-41d4-a716-446655440000",
       "message": "안녕하세요!",
       "sender": "홍길동",
-      "timestamp": "2023-08-01T12:01:00"
+      "timestamp": "2023-08-01T12:01:00",
+      "profileImage": "https://example.com/profile-images/user123.jpg"
     },
     ...
   ]
@@ -363,7 +366,8 @@ Authorization: Bearer {jwt-token}
       "roomId": "550e8400-e29b-41d4-a716-446655440000",
       "message": "안녕하세요!",
       "sender": "홍길동",
-      "timestamp": "2023-08-01T12:00:00"
+      "timestamp": "2023-08-01T12:00:00",
+      "profileImage": "https://example.com/profile-images/user123.jpg"
     },
     ...
   ]
@@ -389,7 +393,8 @@ Authorization: Bearer {jwt-token}
       "roomId": "550e8400-e29b-41d4-a716-446655440000",
       "message": "안녕하세요 여러분!",
       "sender": "홍길동",
-      "timestamp": "2023-08-01T12:00:00"
+      "timestamp": "2023-08-01T12:00:00",
+      "profileImage": "https://example.com/profile-images/user123.jpg"
     },
     ...
   ]

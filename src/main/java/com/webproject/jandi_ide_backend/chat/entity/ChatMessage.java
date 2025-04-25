@@ -32,6 +32,7 @@ public class ChatMessage {
     private String sender;               // 발신자
     private String message;              // 메시지 내용
     private LocalDateTime timestamp;     // 전송 시간
+    private String profileImage;         // 발신자의 프로필 이미지 URL
 
     /**
      * ChatMessageDTO를 ChatMessage 엔티티로 변환하는 메소드
@@ -45,6 +46,7 @@ public class ChatMessage {
                 .sender(dto.getSender())
                 .message(dto.getMessage())
                 .timestamp(LocalDateTime.parse(dto.getTimestamp()))
+                .profileImage(dto.getProfileImage())
                 .build();
     }
 } 

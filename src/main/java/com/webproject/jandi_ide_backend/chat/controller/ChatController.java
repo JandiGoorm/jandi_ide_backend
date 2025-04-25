@@ -15,9 +15,6 @@ import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.Pageable;
-import org.springframework.data.web.PageableDefault;
 import org.springframework.http.ResponseEntity;
 import org.springframework.messaging.handler.annotation.MessageMapping;
 import org.springframework.messaging.handler.annotation.Payload;
@@ -31,7 +28,6 @@ import org.springframework.web.bind.annotation.RequestParam;
 
 import java.security.Principal;
 import java.time.LocalDateTime;
-import java.time.format.DateTimeParseException;
 import java.util.List;
 
 /**
@@ -101,6 +97,8 @@ public class ChatController {
                         .orElse(null);
                 if (userEntity != null) {
                     message.setSender(userEntity.getNickname());
+                    // 사용자의 프로필 이미지 설정
+                    message.setProfileImage(userEntity.getProfileImage());
                 }
             } catch (Exception e) {
                 log.warn("사용자 정보 조회 실패, 기본 sender 사용: {}", e.getMessage());
