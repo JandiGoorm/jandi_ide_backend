@@ -128,7 +128,8 @@ function sendMessage(type, messageText, roomId) {
     "roomId": "채팅방ID",
     "message": "메시지 내용",
     "sender": "발신자 닉네임",
-    "timestamp": "2023-08-01T12:01:00"
+    "timestamp": "2023-08-01T12:01:00",
+    "profileImage": "https://example.com/profile-images/user123.jpg"
   }
   ```
 
