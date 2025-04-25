@@ -301,7 +301,7 @@ public class ChatRoomController {
             @ApiResponse(responseCode = "200", description = "조회 성공"),
             @ApiResponse(responseCode = "404", description = "채팅방을 찾을 수 없음")
     })
-    @GetMapping("/rooms/{roomId}/messages")
+    @GetMapping("/{roomId}/messages")
     public ResponseEntity<List<ChatMessageDTO>> getRoomMessages(
             @Parameter(description = "채팅방 ID", required = true) @PathVariable String roomId) {
         // 채팅방 존재 여부 먼저 확인
@@ -319,7 +319,7 @@ public class ChatRoomController {
             @ApiResponse(responseCode = "200", description = "조회 성공"),
             @ApiResponse(responseCode = "404", description = "채팅방을 찾을 수 없음")
     })
-    @GetMapping("/rooms/{roomId}/messages/paged")
+    @GetMapping("/{roomId}/messages/paged")
     public ResponseEntity<Page<ChatMessageDTO>> getRoomMessagesPaged(
             @Parameter(description = "채팅방 ID", required = true) @PathVariable String roomId,
             @Parameter(description = "페이지 번호 (0부터 시작)", example = "0") @RequestParam(defaultValue = "0") int page,
@@ -341,7 +341,7 @@ public class ChatRoomController {
             @ApiResponse(responseCode = "400", description = "잘못된 요청 (시간 형식 오류 등)"),
             @ApiResponse(responseCode = "404", description = "채팅방을 찾을 수 없음")
     })
-    @GetMapping("/rooms/{roomId}/messages/after")
+    @GetMapping("/{roomId}/messages/after")
     public ResponseEntity<?> getRoomMessagesAfterTimestamp(
             @Parameter(description = "채팅방 ID", required = true) @PathVariable String roomId,
             @Parameter(description = "기준 시간 (ISO-8601 형식)", example = "2023-08-01T12:00:00", required = true) 
