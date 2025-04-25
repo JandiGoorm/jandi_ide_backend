@@ -52,6 +52,7 @@ public class ChatRoomService {
                 .description(chatRoomDto.getDescription())
                 .createdBy(username)
                 .createdAt(LocalDateTime.now().toString()) // 생성 시간 기록
+                .roomType(chatRoomDto.getRoomType()) // 채팅방 유형 설정
                 .build();
 
         // Redis Hash에 채팅방 정보 저장 (Key: CHAT_ROOMS_KEY, HashKey: roomId, Value: chatRoom 객체 -> JSON)

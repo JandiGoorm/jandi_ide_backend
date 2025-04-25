@@ -100,6 +100,36 @@ public class ChatRoomController {
     }
 
     /**
+     * 채팅방 유형별로 필터링된 목록을 조회합니다. 로그인한 모든 사용자가 접근 가능합니다.
+     */
+    @GetMapping("/type/{roomType}")
+    @Operation(summary = "채팅방 유형별 목록 조회", description = "특정 유형(COMPANY 또는 TECH_STACK)에 해당하는 채팅방 목록을 조회합니다.")
+    @ApiResponses(value = {
+        @ApiResponse(responseCode = "200", description = "채팅방 목록 조회 성공"),
+        @ApiResponse(responseCode = "400", description = "잘못된 채팅방 유형"),
+        @ApiResponse(responseCode = "401", description = "인증 실패")
+    })
+    public ResponseEntity<List<ChatRoom>> getRoomsByType(
+            @Parameter(description = "채팅방 유형 (COMPANY 또는 TECH_STACK)", required = true)
+            @PathVariable String roomType,
+            @Parameter(description = "Bearer 인증 토큰", required = true)
+            @RequestHeader("Authorization") String token) {
+        // 토큰 검증만 수행 (모든 인증된 사용자 접근 가능)
+        validateTokenAndGetUser(token);
+        
+        try {
+            ChatRoom.RoomType type = ChatRoom.RoomType.valueOf(roomType.toUpperCase());
+            List<ChatRoom> allRooms = chatRoomService.findAllRooms();
+            List<ChatRoom> filteredRooms = allRooms.stream()
+                    .filter(room -> room.getRoomType() == type)
+                    .toList();
+            return ResponseEntity.ok(filteredRooms);
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().build();
+        }
+    }
+
+    /**
      * 특정 ID의 채팅방을 조회합니다. 로그인한 모든 사용자가 접근 가능합니다.
      */
     @GetMapping("/{roomId}")

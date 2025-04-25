@@ -1,5 +1,6 @@
 package com.webproject.jandi_ide_backend.chat.dto;
 
+import com.webproject.jandi_ide_backend.chat.entity.ChatRoom.RoomType;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -27,4 +28,8 @@ public class ChatRoomDTO {
     // 채팅방을 생성하는 사용자의 이름 (클라이언트 요청 본문에 포함되어 전달됨)
     @Schema(description = "채팅방 생성자", hidden = true)
     private String createdBy;
+    
+    // 채팅방 유형 (기업 관련, 기술 스택 관련)
+    @Schema(description = "채팅방 유형", example = "COMPANY", required = true)
+    private RoomType roomType;
 }

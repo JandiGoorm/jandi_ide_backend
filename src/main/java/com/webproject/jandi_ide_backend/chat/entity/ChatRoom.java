@@ -41,9 +41,20 @@ public class ChatRoom implements Serializable {
     @Schema(description = "채팅방 생성 시간 (ISO 8601 형식)", example = "2023-06-01T12:00:00")
     private String createdAt;   // 채팅방 생성 시간 (ISO 8601 형식 문자열)
 
+    @Schema(description = "채팅방 유형", example = "COMPANY", allowableValues = {"COMPANY", "TECH_STACK"})
+    private RoomType roomType;  // 채팅방 유형 (기업 관련, 기술 스택 관련)
+    
     // 채팅방 참여자 목록 (사용자 이름 저장)
     // @Builder.Default: Lombok 빌더 사용 시 이 필드를 명시적으로 설정하지 않으면 빈 HashSet으로 초기화합니다.
     @Builder.Default
     @Schema(description = "채팅방 참여자 목록")
     private Set<String> participants = new HashSet<>();
+    
+    /**
+     * 채팅방 유형을 정의하는 열거형
+     */
+    public enum RoomType {
+        COMPANY,    // 기업 관련 채팅방
+        TECH_STACK  // 기술 스택 관련 채팅방
+    }
 }
