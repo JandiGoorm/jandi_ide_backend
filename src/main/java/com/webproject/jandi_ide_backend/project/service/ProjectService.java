@@ -2,10 +2,7 @@ package com.webproject.jandi_ide_backend.project.service;
 
 import com.webproject.jandi_ide_backend.global.error.CustomErrorCodes;
 import com.webproject.jandi_ide_backend.global.error.CustomException;
-import com.webproject.jandi_ide_backend.project.dto.BlobResponseDTO;
-import com.webproject.jandi_ide_backend.project.dto.ProjectCreateRequestDTO;
-import com.webproject.jandi_ide_backend.project.dto.ProjectResponseDTO;
-import com.webproject.jandi_ide_backend.project.dto.ProjectUpdateRequestDTO;
+import com.webproject.jandi_ide_backend.project.dto.*;
 import com.webproject.jandi_ide_backend.project.entity.Project;
 import com.webproject.jandi_ide_backend.project.repository.ProjectRepository;
 import com.webproject.jandi_ide_backend.security.JwtTokenProvider;
@@ -13,6 +10,9 @@ import com.webproject.jandi_ide_backend.security.TokenInfo;
 import com.webproject.jandi_ide_backend.user.entity.User;
 import com.webproject.jandi_ide_backend.user.repository.UserRepository;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.http.*;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
@@ -41,9 +41,11 @@ public class ProjectService {
      * 특정 유저의 대표 프로젝트 조회
      * @param token: 사용자 액세스 토큰
      * @param id: 사용자 ID
-     * @return List<ProjectResponseDTO>
+     * @param page: 페이지
+     * @param size: 페이지당 갯수
+     * @return ProjectPageResponseDTO
      */
-    public List<ProjectResponseDTO> getProjects(String token , Integer id) {
+    public ProjectPageResponseDTO getProjects(String token , Integer id,Integer page, Integer size) {
         // 1. 토큰 검증
         jwtTokenProvider.decodeToken(token.replace("Bearer ", "").trim());
 
@@ -52,9 +54,28 @@ public class ProjectService {
 
         // 3. 프로젝트 정보 조회
         List<Project> projects = projectRepository.findByOwner_Id(user.getId());
+        long totalItems = projectRepository.countByOwner_Id(user.getId());
+        int totalPages = (int)Math.ceil((double)totalItems/size);
 
-        // 4. 응답 DTO 변환 후 owner 정보 제거
-        return projects.stream().map(this::convertToDTO).toList();
+        if(page < 0 || page >= totalPages){
+            throw new CustomException(CustomErrorCodes.INVALID_PAGE);
+        }
+
+        Pageable pageable = PageRequest.of(page, size);
+        Page<Project> projectPage = projectRepository.findByOwner_Id(user.getId(), pageable);
+
+        List<ProjectResponseDTO> projectDTOs = projectPage.getContent().stream()
+                .map(this::convertToDTO)
+                .toList();
+
+        ProjectPageResponseDTO responseDTO = new ProjectPageResponseDTO();
+        responseDTO.setData(projectDTOs);
+        responseDTO.setTotalItems(projectPage.getTotalElements());
+        responseDTO.setTotalPages(projectPage.getTotalPages());
+        responseDTO.setCurrentPage(projectPage.getSize());
+        responseDTO.setSize(projectPage.getSize());
+
+        return responseDTO;
     }
 
     /**

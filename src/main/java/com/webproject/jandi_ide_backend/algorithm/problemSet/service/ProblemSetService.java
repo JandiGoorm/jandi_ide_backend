@@ -5,11 +5,7 @@ import com.webproject.jandi_ide_backend.algorithm.problem.entity.Problem;
 import com.webproject.jandi_ide_backend.algorithm.problem.repository.ProblemRepository;
 import com.webproject.jandi_ide_backend.algorithm.problem.service.ProblemService;
 import com.webproject.jandi_ide_backend.algorithm.problemSet.Repository.ProblemSetRepository;
-import com.webproject.jandi_ide_backend.algorithm.problemSet.dto.ReqPostProblemSetDTO;
-import com.webproject.jandi_ide_backend.algorithm.problemSet.dto.ReqUpdateProblemSetDTO;
-import com.webproject.jandi_ide_backend.algorithm.problemSet.dto.RespDetailProblemSet;
-import com.webproject.jandi_ide_backend.algorithm.problemSet.dto.RespProblemSetDTO;
-import com.webproject.jandi_ide_backend.algorithm.problemSet.dto.RespSpecProblemSetDTO;
+import com.webproject.jandi_ide_backend.algorithm.problemSet.dto.*;
 import com.webproject.jandi_ide_backend.algorithm.problemSet.entity.ProblemSet;
 import com.webproject.jandi_ide_backend.company.entity.Company;
 import com.webproject.jandi_ide_backend.company.repository.CompanyRepository;
@@ -19,11 +15,13 @@ import com.webproject.jandi_ide_backend.user.entity.User;
 import com.webproject.jandi_ide_backend.user.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
 import java.time.ZoneId;
-
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -59,16 +57,39 @@ public class ProblemSetService {
         ProblemSet problemSet = createData(probSetDTO, user, company, problemIds);
         return new RespProblemSetDTO(problemSet);
     }
-    public List<RespProblemSetDTO> readProblemSet(String githubId) {
+
+    public RespProblemSetPageDTO readProblemSet(String githubId, Integer page, Integer size) {
         // 유저 검증
         User user = userRepository.findByGithubId(githubId)
                 .orElseThrow(() -> new RuntimeException("유저가 존재하지 않습니다."));
 
-        // 문제집 조회
-        List<ProblemSet> problemSetList = problemSetRepository.findAllByUser(user);
-        return problemSetList.stream()
+        // 전체 아이템 수 조회
+        long totalItems = problemSetRepository.countByUser(user);
+        int totalPages = (int)Math.ceil((double)totalItems/size);
+
+        // 페이지 유효성 검사
+        if(page < 0 || page >= totalPages){
+            throw new CustomException(CustomErrorCodes.INVALID_PAGE);
+        }
+
+        // 페이지네이션 적용하여 문제집 조회
+        Pageable pageable = PageRequest.of(page, size);
+        Page<ProblemSet> problemSetPage = problemSetRepository.findAllByUser(user, pageable);
+
+        // DTO 변환
+        List<RespProblemSetDTO> problemSetDTOs = problemSetPage.getContent().stream()
                 .map(RespProblemSetDTO::fromEntity)
                 .toList();
+
+        // 응답 DTO 구성
+        RespProblemSetPageDTO responseDTO = new RespProblemSetPageDTO();
+        responseDTO.setData(problemSetDTOs);
+        responseDTO.setTotalItems(problemSetPage.getTotalElements());
+        responseDTO.setTotalPages(problemSetPage.getTotalPages());
+        responseDTO.setCurrentPage(problemSetPage.getNumber());
+        responseDTO.setSize(problemSetPage.getSize());
+
+        return responseDTO;
     }
 
     public RespDetailProblemSet readProblemSetDetail(Long id) {
@@ -119,7 +140,7 @@ public class ProblemSetService {
         if(companyName == null){
             throw new RuntimeException("기업 문제인 경우 기업을 선택해야 합니다.");
         }
-        Company company = (Company) companyRepository.findByCompanyName(companyName).orElse(null);
+        Company company = companyRepository.findByCompanyName(companyName).orElse(null);
         if(company == null){
             throw new RuntimeException("존재하지 않는 기업을 선택했습니다.");
         }
