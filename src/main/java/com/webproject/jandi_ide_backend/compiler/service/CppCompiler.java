@@ -170,7 +170,6 @@ public class CppCompiler {
                     // 결과 저장
                     String resultString = result.toString().trim();
                     log.debug("Raw output capture: [" + resultString + "]");
-                    output.append(resultString);
 
                     // 통과 여부 확인
                     boolean isPass = compareOutput(resultString, expectedOutput);
@@ -186,15 +185,6 @@ public class CppCompiler {
                             .build();
 
                     results.add(resultDto);
-
-                    // 결과 메시지 추가
-                    if (isPass) {
-                        output.append("\n테스트 케이스 #").append(i + 1).append(" 통과!");
-                    } else {
-                        output.append("\n테스트 케이스 #").append(i + 1).append(" 실패");
-                        output.append("\n기대 출력:\n").append(expectedOutput);
-                        output.append("\n실제 출력:\n").append(resultString);
-                    }
                 } catch (Exception e) {
                     output.append("🚨ERROR : ").append(e.getMessage()).append("\n");
                     results.add(ResultDto.builder()
