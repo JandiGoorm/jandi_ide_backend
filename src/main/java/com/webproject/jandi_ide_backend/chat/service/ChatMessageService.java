@@ -164,6 +164,7 @@ public class ChatMessageService {
         dto.setSender(message.getSender());
         dto.setMessage(message.getMessage());
         dto.setTimestamp(message.getTimestamp().toString());
+        dto.setProfileImage(message.getProfileImage());
         return dto;
     }
 } 
