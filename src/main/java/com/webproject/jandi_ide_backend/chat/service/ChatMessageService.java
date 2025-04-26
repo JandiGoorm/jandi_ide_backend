@@ -3,12 +3,17 @@ package com.webproject.jandi_ide_backend.chat.service;
 import com.webproject.jandi_ide_backend.chat.dto.ChatMessageDTO;
 import com.webproject.jandi_ide_backend.chat.entity.ChatMessage;
 import com.webproject.jandi_ide_backend.chat.repository.ChatMessageRepository;
+import com.webproject.jandi_ide_backend.security.JwtTokenProvider;
+import com.webproject.jandi_ide_backend.user.entity.User;
+import com.webproject.jandi_ide_backend.user.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.messaging.simp.SimpMessageHeaderAccessor;
 import org.springframework.stereotype.Service;
 
+import java.security.Principal;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
@@ -25,6 +30,8 @@ import java.util.stream.Collectors;
 public class ChatMessageService {
 
     private final ChatMessageRepository chatMessageRepository;
+    private final UserRepository userRepository;
+    private final JwtTokenProvider jwtTokenProvider;
 
     /**
      * 채팅 메시지를 MongoDB에 저장합니다.
@@ -167,5 +174,64 @@ public class ChatMessageService {
         dto.setTimestamp(message.getTimestamp().toString());
         dto.setProfileImage(message.getProfileImage());
         return dto;
+    }
+
+    /**
+     * WebSocket 메시지를 처리하고 관련 사용자 정보를 설정합니다.
+     *
+     * @param message 처리할 메시지 DTO
+     * @param headerAccessor WebSocket 헤더 정보
+     * @return 처리된 메시지 DTO, 유효하지 않은 사용자일 경우 null
+     */
+    public ChatMessageDTO processMessage(ChatMessageDTO message, SimpMessageHeaderAccessor headerAccessor) {
+        // 현재 인증된 사용자 정보 확인
+        Principal user = headerAccessor.getUser();
+        if (user == null) {
+            log.warn("인증되지 않은 사용자의 메시지 - 무시됨: {}", message);
+            return null;
+        }
+        
+        // 인증 정보에서 사용자 이름 추출 (Spring Security에서 설정한 정보)
+        String username = user.getName();
+        log.info("인증된 사용자: {}", username);
+        
+        // 헤더에서 직접 토큰 추출하여 유효성 확인
+        try {
+            List<String> authHeaders = headerAccessor.getNativeHeader("Authorization");
+            if (authHeaders != null && !authHeaders.isEmpty()) {
+                String authHeader = authHeaders.get(0);
+                if (authHeader.startsWith("Bearer ")) {
+                    String token = authHeader.substring(7);
+                    
+                    // 토큰 유효성 명시적 검사
+                    if (!jwtTokenProvider.validateToken(token)) {
+                        log.warn("유효하지 않은 토큰으로 메시지 전송 시도. 사용자: {}", username);
+                        // 메시지는 처리하되 로그 남김
+                    }
+                }
+            }
+        } catch (Exception e) {
+            log.warn("토큰 검증 중 오류: {}", e.getMessage());
+            // 오류가 있어도 메시지 처리는 계속 진행
+        }
+        
+        try {
+            // 사용자의 실제 닉네임 설정 (GitHub 사용자의 경우)
+            User userEntity = userRepository.findByGithubId(username)
+                    .orElse(null);
+            if (userEntity != null) {
+                message.setSender(userEntity.getNickname());
+                // 사용자의 프로필 이미지 설정
+                message.setProfileImage(userEntity.getProfileImage());
+            }
+        } catch (Exception e) {
+            log.warn("사용자 정보 조회 실패, 기본 sender 사용: {}", e.getMessage());
+            // 기존 sender 유지
+        }
+        
+        // 메시지에 현재 시간 추가
+        message.setTimestamp(LocalDateTime.now().toString());
+        
+        return message;
     }
 } 

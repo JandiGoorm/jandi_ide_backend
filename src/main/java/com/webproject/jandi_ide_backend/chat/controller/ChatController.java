@@ -2,9 +2,6 @@ package com.webproject.jandi_ide_backend.chat.controller;
 
 import com.webproject.jandi_ide_backend.chat.dto.ChatMessageDTO;
 import com.webproject.jandi_ide_backend.chat.service.ChatMessageService;
-import com.webproject.jandi_ide_backend.security.JwtTokenProvider;
-import com.webproject.jandi_ide_backend.user.entity.User;
-import com.webproject.jandi_ide_backend.user.repository.UserRepository;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.ArraySchema;
@@ -14,6 +11,7 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
 import org.springframework.messaging.handler.annotation.MessageMapping;
@@ -26,8 +24,6 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 
-import java.security.Principal;
-import java.time.LocalDateTime;
 import java.util.List;
 
 /**
@@ -37,22 +33,11 @@ import java.util.List;
 @Slf4j
 @Controller
 @RequestMapping("/api/chat")
+@RequiredArgsConstructor
 @Tag(name = "채팅 메시지", description = "채팅 메시지 송수신 및 조회 API")
 public class ChatController {
     private final SimpMessagingTemplate messagingTemplate;
-    private final JwtTokenProvider jwtTokenProvider;
-    private final UserRepository userRepository;
-    private final ChatMessageService chatMessageService;  // 추가: 메시지 저장 서비스
-
-    public ChatController(SimpMessagingTemplate messagingTemplate,
-                          JwtTokenProvider jwtTokenProvider,
-                          UserRepository userRepository,
-                          ChatMessageService chatMessageService) {
-        this.messagingTemplate = messagingTemplate;
-        this.jwtTokenProvider = jwtTokenProvider;
-        this.userRepository = userRepository;
-        this.chatMessageService = chatMessageService;
-    }
+    private final ChatMessageService chatMessageService;
 
     @MessageMapping("/chat/message")
     @Operation(summary = "채팅 메시지 전송", description = "WebSocket을 통해 채팅 메시지를 전송합니다.")
@@ -60,57 +45,16 @@ public class ChatController {
         try {
             log.info("메시지 수신: {}", message);
             
-            // 현재 인증된 사용자 정보 확인
-            Principal user = headerAccessor.getUser();
-            if (user == null) {
-                log.warn("인증되지 않은 사용자의 메시지 - 무시됨: {}", message);
+            // 서비스에서 메시지 처리 및 사용자 정보 설정
+            ChatMessageDTO processedMessage = chatMessageService.processMessage(message, headerAccessor);
+            if (processedMessage == null) {
+                // 인증되지 않은 사용자인 경우 무시
                 return;
             }
             
-            // 인증 정보에서 사용자 이름 추출 (Spring Security에서 설정한 정보)
-            String username = user.getName();
-            log.info("인증된 사용자: {}", username);
-            
-            // 헤더에서 직접 토큰 추출하여 유효성 확인
-            try {
-                List<String> authHeaders = headerAccessor.getNativeHeader("Authorization");
-                if (authHeaders != null && !authHeaders.isEmpty()) {
-                    String authHeader = authHeaders.get(0);
-                    if (authHeader.startsWith("Bearer ")) {
-                        String token = authHeader.substring(7);
-                        
-                        // 토큰 유효성 명시적 검사
-                        if (!jwtTokenProvider.validateToken(token)) {
-                            log.warn("유효하지 않은 토큰으로 메시지 전송 시도. 사용자: {}", username);
-                            // 메시지는 처리하되 로그 남김
-                        }
-                    }
-                }
-            } catch (Exception e) {
-                log.warn("토큰 검증 중 오류: {}", e.getMessage());
-                // 오류가 있어도 메시지 처리는 계속 진행
-            }
-            
-            try {
-                // 사용자의 실제 닉네임 설정 (GitHub 사용자의 경우)
-                User userEntity = userRepository.findByGithubId(username)
-                        .orElse(null);
-                if (userEntity != null) {
-                    message.setSender(userEntity.getNickname());
-                    // 사용자의 프로필 이미지 설정
-                    message.setProfileImage(userEntity.getProfileImage());
-                }
-            } catch (Exception e) {
-                log.warn("사용자 정보 조회 실패, 기본 sender 사용: {}", e.getMessage());
-                // 기존 sender 유지
-            }
-            
-            // 메시지에 현재 시간 추가
-            message.setTimestamp(LocalDateTime.now().toString());
-            
             // MongoDB에 메시지 저장
             try {
-                chatMessageService.saveMessage(message);
+                chatMessageService.saveMessage(processedMessage);
                 log.debug("MongoDB에 메시지 저장 완료");
             } catch (Exception e) {
                 log.error("MongoDB에 메시지 저장 실패: {}", e.getMessage(), e);
@@ -118,9 +62,9 @@ public class ChatController {
             }
             
             // 메시지 전송
-            messagingTemplate.convertAndSend("/topic/chat/room/" + message.getRoomId(), message);
+            messagingTemplate.convertAndSend("/topic/chat/room/" + processedMessage.getRoomId(), processedMessage);
             
-            log.info("메시지 전송 완료: {}", message);
+            log.info("메시지 전송 완료: {}", processedMessage);
         } catch (Exception e) {
             log.error("메시지 처리 오류: {}", e.getMessage(), e);
         }

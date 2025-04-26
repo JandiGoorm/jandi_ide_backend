@@ -7,11 +7,8 @@ import com.webproject.jandi_ide_backend.chat.service.ChatMessageService;
 import com.webproject.jandi_ide_backend.chat.service.ChatRoomService;
 import com.webproject.jandi_ide_backend.global.error.CustomErrorCodes;
 import com.webproject.jandi_ide_backend.global.error.CustomException;
-import com.webproject.jandi_ide_backend.security.JwtTokenProvider;
-import com.webproject.jandi_ide_backend.security.TokenInfo;
 import com.webproject.jandi_ide_backend.user.entity.User;
 import com.webproject.jandi_ide_backend.user.entity.User.UserRole;
-import com.webproject.jandi_ide_backend.user.repository.UserRepository;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.Content;
@@ -44,8 +41,6 @@ import java.util.Set;
 @SecurityRequirement(name = "bearerAuth")
 public class ChatRoomController {
     private final ChatRoomService chatRoomService;
-    private final JwtTokenProvider jwtTokenProvider;
-    private final UserRepository userRepository;
     private final ChatMessageService chatMessageService;
 
     /**
@@ -66,7 +61,7 @@ public class ChatRoomController {
             @Parameter(description = "Bearer 인증 토큰", required = true)
             @RequestHeader("Authorization") String token) {
         // 토큰 검증 및 사용자 가져오기
-        User user = validateTokenAndGetUser(token);
+        User user = chatRoomService.validateTokenAndGetUser(token);
         
         // ADMIN 권한 검사
         if (user.getRole() != UserRole.ADMIN) {
@@ -93,7 +88,7 @@ public class ChatRoomController {
             @Parameter(description = "Bearer 인증 토큰", required = true)
             @RequestHeader("Authorization") String token) {
         // 토큰 검증만 수행 (모든 인증된 사용자 접근 가능)
-        validateTokenAndGetUser(token);
+        chatRoomService.validateTokenAndGetUser(token);
 
         List<ChatRoom> allRooms = chatRoomService.findAllRooms();
         return ResponseEntity.ok(allRooms);
@@ -115,14 +110,10 @@ public class ChatRoomController {
             @Parameter(description = "Bearer 인증 토큰", required = true)
             @RequestHeader("Authorization") String token) {
         // 토큰 검증만 수행 (모든 인증된 사용자 접근 가능)
-        validateTokenAndGetUser(token);
+        chatRoomService.validateTokenAndGetUser(token);
         
         try {
-            ChatRoom.RoomType type = ChatRoom.RoomType.valueOf(roomType.toUpperCase());
-            List<ChatRoom> allRooms = chatRoomService.findAllRooms();
-            List<ChatRoom> filteredRooms = allRooms.stream()
-                    .filter(room -> room.getRoomType() == type)
-                    .toList();
+            List<ChatRoom> filteredRooms = chatRoomService.findRoomsByType(roomType);
             return ResponseEntity.ok(filteredRooms);
         } catch (IllegalArgumentException e) {
             return ResponseEntity.badRequest().build();
@@ -146,7 +137,7 @@ public class ChatRoomController {
             @Parameter(description = "Bearer 인증 토큰", required = true)
             @RequestHeader("Authorization") String token) {
         // 토큰 검증만 수행 (모든 인증된 사용자 접근 가능)
-        validateTokenAndGetUser(token);
+        chatRoomService.validateTokenAndGetUser(token);
 
         ChatRoom room = chatRoomService.findRoomById(roomId);
         if (room != null) {
@@ -172,7 +163,7 @@ public class ChatRoomController {
             @Parameter(description = "Bearer 인증 토큰", required = true)
             @RequestHeader("Authorization") String token) {
         // 토큰 검증만 수행 (모든 인증된 사용자 접근 가능)
-        validateTokenAndGetUser(token);
+        chatRoomService.validateTokenAndGetUser(token);
 
         ChatRoom room = chatRoomService.findRoomById(roomId);
         if (room != null) {
@@ -199,7 +190,7 @@ public class ChatRoomController {
             @Parameter(description = "Bearer 인증 토큰", required = true)
             @RequestHeader("Authorization") String token) {
         // 토큰 검증 및 사용자 가져오기
-        User user = validateTokenAndGetUser(token);
+        User user = chatRoomService.validateTokenAndGetUser(token);
         
         // ADMIN 권한 검사
         if (user.getRole() != UserRole.ADMIN) {
@@ -237,7 +228,7 @@ public class ChatRoomController {
             @Parameter(description = "Bearer 인증 토큰", required = true)
             @RequestHeader("Authorization") String token) {
         // 토큰 검증 및 사용자 가져오기
-        User user = validateTokenAndGetUser(token);
+        User user = chatRoomService.validateTokenAndGetUser(token);
 
         // 채팅방 정보 확인
         ChatRoom room = chatRoomService.findRoomById(roomId);
@@ -267,7 +258,7 @@ public class ChatRoomController {
             @Parameter(description = "Bearer 인증 토큰", required = true)
             @RequestHeader("Authorization") String token) {
         // 토큰 검증 및 사용자 가져오기
-        User user = validateTokenAndGetUser(token);
+        User user = chatRoomService.validateTokenAndGetUser(token);
 
         // 채팅방 정보 확인
         ChatRoom room = chatRoomService.findRoomById(roomId);
@@ -278,22 +269,6 @@ public class ChatRoomController {
         // 채팅방 나가기 처리
         ChatRoom updatedRoom = chatRoomService.removeParticipant(roomId, user.getNickname());
         return ResponseEntity.ok(updatedRoom);
-    }
-
-    /**
-     * JWT 토큰을 검증하고 사용자 정보를 반환하는 유틸리티 메서드
-     */
-    private User validateTokenAndGetUser(String token) {
-        if (token == null || !token.startsWith("Bearer ")) {
-            throw new CustomException(CustomErrorCodes.INVALID_JWT_TOKEN);
-        }
-
-        String accessToken = token.replace("Bearer ", "");
-        TokenInfo tokenInfo = jwtTokenProvider.decodeToken(accessToken);
-
-        // 사용자 정보 확인
-        return userRepository.findByGithubId(tokenInfo.getGithubId())
-                .orElseThrow(() -> new CustomException(CustomErrorCodes.USER_NOT_FOUND));
     }
 
     @Operation(summary = "특정 채팅방의 메시지 목록 조회", description = "채팅방 ID로 해당 채팅방의 모든 메시지를 조회합니다.")
