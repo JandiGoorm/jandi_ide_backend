@@ -7,6 +7,10 @@ import com.webproject.jandi_ide_backend.user.entity.User;
 import com.webproject.jandi_ide_backend.user.entity.UserTechStack;
 import com.webproject.jandi_ide_backend.user.repository.UserRepository;
 import com.webproject.jandi_ide_backend.user.repository.UserTechStackRepository;
+import com.webproject.jandi_ide_backend.global.error.CustomErrorCodes;
+import com.webproject.jandi_ide_backend.global.error.CustomException;
+import com.webproject.jandi_ide_backend.security.JwtTokenProvider;
+import com.webproject.jandi_ide_backend.security.TokenInfo;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
@@ -21,6 +25,23 @@ public class UserTechStackService {
     private final UserRepository userRepository;
     private final UserTechStackRepository userTechStackRepository;
     private final TechStackRepository techStackRepository;
+    private final JwtTokenProvider jwtTokenProvider;
+
+    /**
+     * 인증 토큰에서 GitHub ID를 추출합니다.
+     * @param token 인증 토큰
+     * @return GitHub ID
+     */
+    public String getGithubIdFromToken(String token) {
+        // accessToken 얻기
+        if (token == null || token.isBlank() || !token.startsWith("Bearer "))
+            throw new CustomException(CustomErrorCodes.INVALID_JWT_TOKEN);
+        String accessToken = token.replace("Bearer ", "").trim();
+
+        // 토큰 디코딩 및 깃헙 아이디 추출
+        TokenInfo tokenInfo = jwtTokenProvider.decodeToken(accessToken);
+        return tokenInfo.getGithubId();
+    }
 
     // 전체 선호 기업 리스트 조회
     public List<RespTechStackDTO> readFavoriteTechStack(String githubId) {
@@ -32,6 +53,16 @@ public class UserTechStackService {
         return favoriteTechStackList.stream()
                 .map(favoriteTechStack -> new RespTechStackDTO(favoriteTechStack.getTechStack()))
                 .toList();
+    }
+
+    /**
+     * 인증 토큰으로 선호 기술 스택 목록을 조회합니다.
+     * @param token 인증 토큰
+     * @return 기술 스택 목록
+     */
+    public List<RespTechStackDTO> readFavoriteTechStackByToken(String token) {
+        String githubId = getGithubIdFromToken(token);
+        return readFavoriteTechStack(githubId);
     }
 
     // 이전의 선호 기업 정보를 지우고 새 정보로 대체
@@ -66,6 +97,20 @@ public class UserTechStackService {
         return newUserTechStackList.stream()
                 .map(favoriteTechStack -> new RespTechStackDTO(favoriteTechStack.getTechStack()))
                 .toList();
+    }
+
+    /**
+     * 인증 토큰으로 선호 기술 스택 목록을 업데이트합니다.
+     * @param token 인증 토큰
+     * @param techStackNameList 기술 스택 이름 목록
+     * @return 업데이트된 기술 스택 목록
+     */
+    public List<RespTechStackDTO> putFavoriteTechStackByToken(String token, List<String> techStackNameList) {
+        if (techStackNameList == null || techStackNameList.isEmpty()) {
+            throw new RuntimeException("선택된 언어가 없습니다");
+        }
+        String githubId = getGithubIdFromToken(token);
+        return putFavoriteTechStack(githubId, techStackNameList);
     }
 
     /// 실제 DB CRUD

@@ -44,17 +44,7 @@ public class UserController {
     })
     @PostMapping("/login")
     public ResponseEntity<AuthResponseDTO> login(@RequestBody AuthRequestDTO request) {
-        String code = request.getCode();
-        // 1) code가 없으면 에러
-        if (code == null || code.isBlank()) {
-            throw new CustomException(CustomErrorCodes.INVALID_GITHUB_CODE);
-        }
-
-        // 2) 깃헙 OAuth 로그인 처리 (깃헙에 토큰 요청 -> accessToken 발급 ->  DB 저장/조회)
-        AuthResponseDTO loginResp;
-        loginResp = userService.login(request);
-
-        // 3) 최종적으로 토큰 반환
+        AuthResponseDTO loginResp = userService.login(request);
         return ResponseEntity.ok(loginResp);
     }
 
@@ -78,13 +68,7 @@ public class UserController {
             ),
     })
     public ResponseEntity<AuthResponseDTO> refresh(@RequestBody RefreshDTO request){
-        String refreshToken = request.getRefreshToken();
-
-        if (refreshToken == null || refreshToken.isBlank()) {
-            throw new CustomException(CustomErrorCodes.INVALID_JWT_TOKEN);
-        }
-
-        AuthResponseDTO authRespDTO = userService.refreshToken(refreshToken);
+        AuthResponseDTO authRespDTO = userService.refreshToken(request.getRefreshToken());
         return ResponseEntity.ok(authRespDTO);
     }
 

@@ -7,10 +7,8 @@ import com.webproject.jandi_ide_backend.project.dto.ProjectCreateRequestDTO;
 import com.webproject.jandi_ide_backend.project.dto.ProjectResponseDTO;
 import com.webproject.jandi_ide_backend.project.dto.ProjectUpdateRequestDTO;
 import com.webproject.jandi_ide_backend.project.entity.Project;
-import com.webproject.jandi_ide_backend.project.repository.ProjectRepository;
 import com.webproject.jandi_ide_backend.project.service.ProjectService;
 
-import com.webproject.jandi_ide_backend.security.JwtTokenProvider;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.Content;
@@ -33,11 +31,9 @@ import org.springframework.web.bind.annotation.*;
 @RequestMapping("/api/projects")
 public class ProjectController {
     private final ProjectService projectService;
-    private final ProjectRepository projectRepository;
 
-    public ProjectController(ProjectService projectService, ProjectRepository projectRepository, JwtTokenProvider jwtTokenProvider) {
+    public ProjectController(ProjectService projectService) {
         this.projectService = projectService;
-        this.projectRepository = projectRepository;
     }
 
     @PostMapping

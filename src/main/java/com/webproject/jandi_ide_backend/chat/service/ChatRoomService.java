@@ -3,6 +3,12 @@ package com.webproject.jandi_ide_backend.chat.service;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.webproject.jandi_ide_backend.chat.dto.ChatRoomDTO;
 import com.webproject.jandi_ide_backend.chat.entity.ChatRoom;
+import com.webproject.jandi_ide_backend.global.error.CustomErrorCodes;
+import com.webproject.jandi_ide_backend.global.error.CustomException;
+import com.webproject.jandi_ide_backend.security.JwtTokenProvider;
+import com.webproject.jandi_ide_backend.security.TokenInfo;
+import com.webproject.jandi_ide_backend.user.entity.User;
+import com.webproject.jandi_ide_backend.user.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.redis.core.RedisTemplate;
@@ -14,6 +20,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 /**
  * 채팅방(ChatRoom) 관련 비즈니스 로직을 처리하는 서비스 클래스입니다.
@@ -30,6 +37,8 @@ public class ChatRoomService {
     private final RedisTemplate<String, Object> redisTemplate;
     // Redis에서 가져온 Object(주로 LinkedHashMap)를 ChatRoom DTO로 변환하기 위한 ObjectMapper
     private final ObjectMapper objectMapper;
+    private final JwtTokenProvider jwtTokenProvider;
+    private final UserRepository userRepository;
 
     /**
      * 새로운 채팅방을 생성하고 Redis에 저장합니다.
@@ -256,6 +265,45 @@ public class ChatRoomService {
         } catch (Exception e) {
             log.error("Error removing participant {} from chat room {}: {}", username, roomId, e.getMessage(), e);
             throw new RuntimeException("Error removing participant from chat room", e);
+        }
+    }
+
+    /**
+     * JWT 토큰을 검증하고 사용자 정보를 반환합니다.
+     *
+     * @param token JWT 토큰
+     * @return 사용자 정보
+     * @throws CustomException 토큰이 유효하지 않거나 사용자를 찾을 수 없는 경우
+     */
+    public User validateTokenAndGetUser(String token) {
+        if (token == null || !token.startsWith("Bearer ")) {
+            throw new CustomException(CustomErrorCodes.INVALID_JWT_TOKEN);
+        }
+
+        String accessToken = token.replace("Bearer ", "");
+        TokenInfo tokenInfo = jwtTokenProvider.decodeToken(accessToken);
+
+        // 사용자 정보 확인
+        return userRepository.findByGithubId(tokenInfo.getGithubId())
+                .orElseThrow(() -> new CustomException(CustomErrorCodes.USER_NOT_FOUND));
+    }
+
+    /**
+     * 특정 유형의 채팅방 목록을 조회합니다.
+     *
+     * @param roomType 조회할 채팅방 유형
+     * @return 특정 유형의 채팅방 목록
+     */
+    public List<ChatRoom> findRoomsByType(String roomType) {
+        try {
+            ChatRoom.RoomType type = ChatRoom.RoomType.valueOf(roomType.toUpperCase());
+            List<ChatRoom> allRooms = findAllRooms();
+            return allRooms.stream()
+                    .filter(room -> room.getRoomType() == type)
+                    .collect(Collectors.toList());
+        } catch (IllegalArgumentException e) {
+            log.error("Invalid room type: {}", roomType, e);
+            throw new IllegalArgumentException("Invalid room type: " + roomType);
         }
     }
 }

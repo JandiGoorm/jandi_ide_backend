@@ -95,13 +95,12 @@ public class CompilerController {
                 }
             ) 
             @RequestBody CodeSubmissionDto submissionDto) {
-        log.debug("코드 컴파일: 사용자={}, 문제={}, 언어={}", 
+        log.debug("코드 컴파일 요청: 사용자={}, 문제={}, 언어={}", 
             submissionDto.getUserId(), 
             submissionDto.getProblemId(), 
             submissionDto.getLanguage());
             
-        Object result = compilerService.processCompileRequest(submissionDto);
-        return ResponseEntity.ok(result);
+        return ResponseEntity.ok(compilerService.processCompileRequest(submissionDto));
     }
     
     /**
@@ -156,12 +155,11 @@ public class CompilerController {
                 }
             ) 
             @RequestBody SaveSolutionDto saveSolutionDto) {
-        log.debug("솔루션 저장: 사용자={}, 문제={}, 언어={}", 
+        log.debug("솔루션 저장 요청: 사용자={}, 문제={}, 언어={}", 
             saveSolutionDto.getUserId(), 
             saveSolutionDto.getProblemId(), 
             saveSolutionDto.getLanguage());
         
-        Object result = compilerService.processSaveSolutionRequest(saveSolutionDto);
-        return ResponseEntity.ok(result);
+        return ResponseEntity.ok(compilerService.processSaveSolutionRequest(saveSolutionDto));
     }
 } 
