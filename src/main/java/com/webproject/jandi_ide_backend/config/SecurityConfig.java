@@ -48,9 +48,9 @@ public class SecurityConfig {
                         // 채팅 관련 요청은 인증 필요
                         .requestMatchers("/chat/**").authenticated()
                         // POST, PUT, DELETE 요청은 ADMIN 권한 필요
-                        .requestMatchers(HttpMethod.POST, "/api/companies/**","/api/job-postings/**","/api/schedules/**","/api/problems/**","/api/test-cases/**").hasAnyRole("STAFF", "ADMIN")
-                        .requestMatchers(HttpMethod.PUT, "/api/companies/**","/api/job-postings/**","/api/schedules/**","/api/problems/**","/api/test-cases/**").hasAnyRole("STAFF", "ADMIN")
-                        .requestMatchers(HttpMethod.DELETE, "/api/companies/**","/api/job-postings/**","/api/schedules/**","/api/problems/**","/api/test-cases/**").hasAnyRole("STAFF", "ADMIN")
+                        .requestMatchers(HttpMethod.POST, "/api/companies/{id}/**","/api/job-postings/**","/api/schedules/**","/api/problems/**","/api/test-cases/**").hasAnyRole("STAFF", "ADMIN")
+                        .requestMatchers(HttpMethod.PUT, "/api/companies/{id}/**","/api/job-postings/**","/api/schedules/**","/api/problems/**","/api/test-cases/**").hasAnyRole("STAFF", "ADMIN")
+                        .requestMatchers(HttpMethod.DELETE, "/api/companies/{id}/**","/api/job-postings/**","/api/schedules/**","/api/problems/**","/api/test-cases/**").hasAnyRole("STAFF", "ADMIN")
                         // 관심 기업은 모두 가능
                         .requestMatchers("/api/companies/favorite", "/api/companies/favorite/**").permitAll()
                         // 나머지 API 요청은 인증 필요
