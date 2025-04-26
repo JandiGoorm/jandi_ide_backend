@@ -77,8 +77,15 @@ public class SecurityConfig {
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration config = new CorsConfiguration();
         
-        // 모든 출처 허용 (실제 운영 환경에서는 구체적인 도메인으로 제한해야 함)
-        config.addAllowedOriginPattern("*");
+        // 명시적으로 특정 도메인 허용 (Netlify 도메인 포함)
+        config.setAllowedOrigins(Arrays.asList(
+            "https://jandiide.netlify.app", 
+            "http://localhost:3000", 
+            "http://localhost:5173"
+        ));
+        
+        // 모든 출처 허용 패턴 - 위의 setAllowedOrigins와 함께 사용하지 않음
+        // config.addAllowedOriginPattern("*");
         
         // 허용할 HTTP 메서드 설정
         config.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"));

@@ -39,7 +39,11 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
     @Override
     public void registerStompEndpoints(StompEndpointRegistry registry) {
         registry.addEndpoint("/ws")
-                .setAllowedOriginPatterns("*")
+                .setAllowedOrigins(
+                    "https://jandiide.netlify.app",
+                    "http://localhost:3000",
+                    "http://localhost:5173"
+                )
                 .withSockJS();
     }
 
