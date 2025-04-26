@@ -2,10 +2,6 @@ package com.webproject.jandi_ide_backend.algorithm.problemSet.controller;
 
 import com.webproject.jandi_ide_backend.algorithm.problemSet.dto.*;
 import com.webproject.jandi_ide_backend.algorithm.problemSet.service.ProblemSetService;
-import com.webproject.jandi_ide_backend.global.error.CustomErrorCodes;
-import com.webproject.jandi_ide_backend.global.error.CustomException;
-import com.webproject.jandi_ide_backend.security.JwtTokenProvider;
-import com.webproject.jandi_ide_backend.security.TokenInfo;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.ArraySchema;
@@ -23,11 +19,9 @@ import org.springframework.web.bind.annotation.*;
 @RequestMapping("/api/problem-set")
 public class ProblemSetController {
     private final ProblemSetService problemSetService;
-    private final JwtTokenProvider jwtTokenProvider;
 
-    public ProblemSetController(ProblemSetService problemSetService, JwtTokenProvider jwtTokenProvider) {
+    public ProblemSetController(ProblemSetService problemSetService) {
         this.problemSetService = problemSetService;
-        this.jwtTokenProvider = jwtTokenProvider;
     }
 
     /// create
@@ -48,7 +42,7 @@ public class ProblemSetController {
             @Parameter(hidden = true) @RequestHeader("Authorization") String token,
             @RequestBody ReqPostProblemSetDTO probSetDTO
     ) {
-        String githubId = getGithubIdFromToken(token);
+        String githubId = problemSetService.getGithubIdFromToken(token);
         return problemSetService.createProblemSet(probSetDTO, githubId);
     }
 
@@ -72,7 +66,7 @@ public class ProblemSetController {
             @RequestParam(value="page",defaultValue = "0") Integer page,
             @RequestParam(value="size",defaultValue = "10") Integer size
     ) {
-        String githubId = getGithubIdFromToken(token);
+        String githubId = problemSetService.getGithubIdFromToken(token);
         return problemSetService.readProblemSet(githubId,page,size);
     }
 
@@ -115,7 +109,7 @@ public class ProblemSetController {
             @PathVariable Long problemSetId,
             @RequestBody ReqUpdateProblemSetDTO probSetDTO
             ) {
-        String githubId = getGithubIdFromToken(token);
+        String githubId = problemSetService.getGithubIdFromToken(token);
         return problemSetService.updateProblemSet(problemSetId, probSetDTO, githubId);
     }
 
@@ -137,20 +131,9 @@ public class ProblemSetController {
             @Parameter(hidden = true) @RequestHeader("Authorization") String token,
             @PathVariable Long problemSetId
     ) {
-        String githubId = getGithubIdFromToken(token);
+        String githubId = problemSetService.getGithubIdFromToken(token);
         if (!problemSetService.deleteProblemSet(problemSetId, githubId))
             throw new RuntimeException("알수없는 이유로 삭제에 실패했습니다. 다시 시도해주세요");
         return ResponseEntity.ok("삭제되었습니다");
-    }
-
-    private String getGithubIdFromToken(String token) {
-        // accessToken 얻기
-        if (token == null || token.isBlank() || !token.startsWith("Bearer "))
-            throw new CustomException(CustomErrorCodes.INVALID_JWT_TOKEN);
-        String accessToken = token.replace("Bearer ", "").trim();
-
-        // 토큰 디코딩 및 깃헙 아이디 추출
-        TokenInfo tokenInfo = jwtTokenProvider.decodeToken(accessToken);
-        return tokenInfo.getGithubId();
     }
 }

@@ -11,6 +11,8 @@ import com.webproject.jandi_ide_backend.company.entity.Company;
 import com.webproject.jandi_ide_backend.company.repository.CompanyRepository;
 import com.webproject.jandi_ide_backend.global.error.CustomErrorCodes;
 import com.webproject.jandi_ide_backend.global.error.CustomException;
+import com.webproject.jandi_ide_backend.security.JwtTokenProvider;
+import com.webproject.jandi_ide_backend.security.TokenInfo;
 import com.webproject.jandi_ide_backend.user.entity.User;
 import com.webproject.jandi_ide_backend.user.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
@@ -34,6 +36,7 @@ public class ProblemSetService {
     private final UserRepository userRepository;
     private final CompanyRepository companyRepository;
     private final ProblemService problemService;
+    private final JwtTokenProvider jwtTokenProvider;
 
     /// API
     public RespProblemSetDTO createProblemSet(ReqPostProblemSetDTO probSetDTO, String githubId) {
@@ -132,6 +135,23 @@ public class ProblemSetService {
         // 문제집 삭제 및 성공 여부 반환
         deleteData(problemSetId, user);
         return problemSetRepository.findById(problemSetId).isEmpty(); // 없으면 정상 삭제로 간주
+    }
+
+    /**
+     * 토큰에서 깃허브 ID를 추출합니다.
+     *
+     * @param token JWT 토큰
+     * @return 깃허브 ID
+     */
+    public String getGithubIdFromToken(String token) {
+        // accessToken 얻기
+        if (token == null || token.isBlank() || !token.startsWith("Bearer "))
+            throw new CustomException(CustomErrorCodes.INVALID_JWT_TOKEN);
+        String accessToken = token.replace("Bearer ", "").trim();
+
+        // 토큰 디코딩 및 깃헙 아이디 추출
+        TokenInfo tokenInfo = jwtTokenProvider.decodeToken(accessToken);
+        return tokenInfo.getGithubId();
     }
 
     /// 함수 분리
