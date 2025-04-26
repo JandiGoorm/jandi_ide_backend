@@ -135,10 +135,18 @@ public class CompilerService {
         // 6. 실행 결과 문자열 생성
         StringBuilder resultDetails = new StringBuilder();
         for (ResultDto result : results) {
-            resultDetails.append("테스트 ").append(result.getTestNum()).append(": ")
-                    .append(result.getStatus()).append("\n")
-                    .append("실행 시간: ").append(result.getExecutionTime()).append("ms\n")
-                    .append("메모리 사용량: ").append(result.getUsedMemory()).append("MB\n\n");
+            resultDetails.append("테스트 케이스 #").append(result.getTestNum());
+            
+            if (result.getStatus() == ResultStatus.CORRECT) {
+                resultDetails.append(" 통과!\n");
+            } else {
+                resultDetails.append(" 실패\n");
+                resultDetails.append("- 기대 출력:\n").append(result.getExpectedResult()).append("\n");
+                resultDetails.append("- 실제 출력:\n").append(result.getActualResult()).append("\n");
+            }
+            
+            resultDetails.append("실행 시간: ").append(result.getExecutionTime()).append("ms\n");
+            resultDetails.append("메모리 사용량: ").append(result.getUsedMemory()).append("MB\n\n");
         }
         
         // 7. Solution 객체 생성 및 저장
@@ -828,10 +836,18 @@ public class CompilerService {
         // 6. 실행 결과 문자열 생성
         StringBuilder resultDetails = new StringBuilder();
         for (ResultDto result : results) {
-            resultDetails.append("테스트 ").append(result.getTestNum()).append(": ")
-                    .append(result.getStatus()).append("\n")
-                    .append("실행 시간: ").append(result.getExecutionTime()).append("ms\n")
-                    .append("메모리 사용량: ").append(result.getUsedMemory()).append("MB\n\n");
+            resultDetails.append("테스트 케이스 #").append(result.getTestNum());
+            
+            if (result.getStatus() == ResultStatus.CORRECT) {
+                resultDetails.append(" 통과!\n");
+            } else {
+                resultDetails.append(" 실패\n");
+                resultDetails.append("- 기대 출력:\n").append(result.getExpectedResult()).append("\n");
+                resultDetails.append("- 실제 출력:\n").append(result.getActualResult()).append("\n");
+            }
+            
+            resultDetails.append("실행 시간: ").append(result.getExecutionTime()).append("ms\n");
+            resultDetails.append("메모리 사용량: ").append(result.getUsedMemory()).append("MB\n\n");
         }
         
         // 7. 결과 상태 설정

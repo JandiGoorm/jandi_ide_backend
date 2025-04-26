@@ -189,19 +189,15 @@ public class JavaCompiler {
                     
                     // 통과 여부 확인
                     boolean isPass = compareOutput(resultString, expectedOutput);
-                    if (isPass) {
-                        output.append("\n테스트 케이스 #").append(i + 1).append(" 통과!");
-                    } else {
-                        output.append("\n테스트 케이스 #").append(i + 1).append(" 실패");
-                        output.append("\n기대 출력:\n").append(expectedOutput);
-                        output.append("\n실제 출력:\n").append(resultString);
-                    }
+                    
+                    // 중복 출력 제거: 여기서는 통과/실패와 입출력 비교 메시지를 추가하지 않음
+                    // 오직 실제 프로그램 출력만 actualResult에 포함
 
                     results.add(ResultDto.builder()
                             .testNum(i + 1)
                             .input(input)
                             .expectedResult(expectedOutput)
-                            .actualResult(output.toString())
+                            .actualResult(resultString)  // 실제 프로그램 출력만 포함
                             .executionTime(time)
                             .usedMemory(memory)
                             .status(isPass ? ResultStatus.CORRECT : ResultStatus.WRONG_ANSWER)
