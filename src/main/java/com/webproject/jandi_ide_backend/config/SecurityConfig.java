@@ -45,14 +45,16 @@ public class SecurityConfig {
                         .requestMatchers("/api/users/login", "/api/users/refresh").permitAll()
                         // OPTIONS 요청 허용 (CORS preflight)
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
+                        // 관심 기업 관련 요청 허용 - 인증된 모든 회원이 접근 가능하도록 위치 변경
+                        .requestMatchers(HttpMethod.GET, "/api/companies/favorite/**").authenticated()
+                        .requestMatchers(HttpMethod.POST, "/api/companies/favorite/**").authenticated()
+                        .requestMatchers(HttpMethod.DELETE, "/api/companies/favorite/**").authenticated()
                         // 채팅 관련 요청은 인증 필요
                         .requestMatchers("/chat/**").authenticated()
                         // POST, PUT, DELETE 요청은 ADMIN 권한 필요
-                        .requestMatchers(HttpMethod.POST, "/api/companies/{id}/**","/api/job-postings/**","/api/schedules/**","/api/problems/**","/api/test-cases/**").hasAnyRole("STAFF", "ADMIN")
-                        .requestMatchers(HttpMethod.PUT, "/api/companies/{id}/**","/api/job-postings/**","/api/schedules/**","/api/problems/**","/api/test-cases/**").hasAnyRole("STAFF", "ADMIN")
-                        .requestMatchers(HttpMethod.DELETE, "/api/companies/{id}/**","/api/job-postings/**","/api/schedules/**","/api/problems/**","/api/test-cases/**").hasAnyRole("STAFF", "ADMIN")
-                        // 관심 기업은 모두 가능
-                        .requestMatchers("/api/companies/favorite", "/api/companies/favorite/**").permitAll()
+                        .requestMatchers(HttpMethod.POST, "/api/companies/**","/api/job-postings/**","/api/schedules/**","/api/problems/**","/api/test-cases/**").hasAnyRole("STAFF", "ADMIN")
+                        .requestMatchers(HttpMethod.PUT, "/api/companies/**","/api/job-postings/**","/api/schedules/**","/api/problems/**","/api/test-cases/**").hasAnyRole("STAFF", "ADMIN")
+                        .requestMatchers(HttpMethod.DELETE, "/api/companies/**","/api/job-postings/**","/api/schedules/**","/api/problems/**","/api/test-cases/**").hasAnyRole("STAFF", "ADMIN")
                         // 나머지 API 요청은 인증 필요
                         .requestMatchers("/api/**").authenticated()
                         // 그 외 모든 요청 허용
