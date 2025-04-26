@@ -1,6 +1,7 @@
 package com.webproject.jandi_ide_backend.chat.repository;
 
 import com.webproject.jandi_ide_backend.chat.entity.ChatMessage;
+import com.webproject.jandi_ide_backend.chat.dto.ChatMessageDTO;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.mongodb.repository.MongoRepository;
@@ -51,4 +52,21 @@ public interface ChatMessageRepository extends MongoRepository<ChatMessage, Stri
      * @return 키워드를 포함한 메시지 목록
      */
     List<ChatMessage> findByMessageContaining(String keyword);
+
+    /**
+     * 특정 채팅방의 특정 타입 메시지를 조회합니다.
+     * @param roomId 채팅방 ID
+     * @param type 메시지 타입
+     * @return 해당 채팅방의 특정 타입 메시지 목록
+     */
+    List<ChatMessage> findByRoomIdAndType(String roomId, ChatMessageDTO.MessageType type);
+
+    /**
+     * 특정 채팅방의 특정 타입 메시지를 페이징 처리하여 조회합니다.
+     * @param roomId 채팅방 ID
+     * @param type 메시지 타입
+     * @param pageable 페이징 정보
+     * @return 페이징 처리된 특정 타입 메시지 목록
+     */
+    Page<ChatMessage> findByRoomIdAndType(String roomId, ChatMessageDTO.MessageType type, Pageable pageable);
 } 

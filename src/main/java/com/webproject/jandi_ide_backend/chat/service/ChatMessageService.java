@@ -15,7 +15,6 @@ import org.springframework.stereotype.Service;
 
 import java.security.Principal;
 import java.time.LocalDateTime;
-import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -233,5 +232,32 @@ public class ChatMessageService {
         message.setTimestamp(LocalDateTime.now().toString());
         
         return message;
+    }
+
+    /**
+     * 특정 채팅방의 특정 타입 메시지를 조회합니다.
+     *
+     * @param roomId 채팅방 ID
+     * @param type 메시지 타입
+     * @return 해당 채팅방의 특정 타입 메시지 목록
+     */
+    public List<ChatMessageDTO> getMessagesByRoomIdAndType(String roomId, ChatMessageDTO.MessageType type) {
+        log.debug("방 ID와 타입으로 채팅 메시지 조회: {}, {}", roomId, type);
+        List<ChatMessage> messages = chatMessageRepository.findByRoomIdAndType(roomId, type);
+        return convertToChatMessageDTOList(messages);
+    }
+
+    /**
+     * 특정 채팅방의 특정 타입 메시지를 페이징 처리하여 조회합니다.
+     *
+     * @param roomId 채팅방 ID
+     * @param type 메시지 타입
+     * @param pageable 페이징 정보
+     * @return 페이징 처리된 특정 타입 메시지 목록
+     */
+    public Page<ChatMessageDTO> getMessagesByRoomIdAndTypePaged(String roomId, ChatMessageDTO.MessageType type, Pageable pageable) {
+        log.debug("방 ID와 타입으로 채팅 메시지 페이징 조회: {}, {}, {}", roomId, type, pageable);
+        Page<ChatMessage> messagePage = chatMessageRepository.findByRoomIdAndType(roomId, type, pageable);
+        return messagePage.map(this::convertToChatMessageDTO);
     }
 } 
