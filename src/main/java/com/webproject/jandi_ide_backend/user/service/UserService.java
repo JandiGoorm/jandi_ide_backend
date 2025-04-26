@@ -34,12 +34,37 @@ public class UserService {
     private String githubClientSecret;
 
     /**
+     * 깃허브 코드를 검증합니다.
+     * @param code 깃허브 코드
+     * @throws CustomException 코드가 유효하지 않을 경우
+     */
+    public void validateGithubCode(String code) {
+        if (code == null || code.isBlank()) {
+            throw new CustomException(CustomErrorCodes.INVALID_GITHUB_CODE);
+        }
+    }
+
+    /**
+     * 리프레시 토큰을 검증합니다.
+     * @param refreshToken 리프레시 토큰
+     * @throws CustomException 토큰이 유효하지 않을 경우
+     */
+    public void validateRefreshToken(String refreshToken) {
+        if (refreshToken == null || refreshToken.isBlank()) {
+            throw new CustomException(CustomErrorCodes.INVALID_JWT_TOKEN);
+        }
+    }
+
+    /**
      * 깃헙 로그인 시, 액세스 토큰을 발급받고, 사용자 정보를 가져옵니다.
      * DB에 해당 유저 정보가 없다면, DB에 저장합니다.
      * @param authRequestDTO: 깃헙에서 받은 code
      * @return AuthResponseDTO
      */
     public AuthResponseDTO login(AuthRequestDTO authRequestDTO) {
+        // 코드 유효성 검증
+        validateGithubCode(authRequestDTO.getCode());
+        
         ResponseEntity<Map> response;
         try {
             String code = authRequestDTO.getCode();
@@ -154,6 +179,9 @@ public class UserService {
      * @return AuthResponseDTO
      */
     public AuthResponseDTO refreshToken(String refreshToken) {
+        // 토큰 유효성 검증
+        validateRefreshToken(refreshToken);
+        
         TokenInfo tokenInfo = jwtTokenProvider.decodeToken(refreshToken);
         String githubId = tokenInfo.getGithubId();
         String githubToken = tokenInfo.getGithubToken();
