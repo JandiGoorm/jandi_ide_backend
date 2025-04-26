@@ -88,7 +88,7 @@ public class PythonCompiler {
                     long startTime = System.nanoTime();
                     long startMemory = getUsedMemory();
                     
-                    // 출력 읽기 - 단순화된 방식
+                    // 출력 읽기
                     InputStream stdout = runProcess.getInputStream();
                     BufferedReader reader = new BufferedReader(new InputStreamReader(stdout));
                     StringBuilder result = new StringBuilder();
@@ -117,7 +117,7 @@ public class PythonCompiler {
                         
                         // 출력 읽기
                         while ((line = reader.readLine()) != null) {
-                            result.append(line);
+                            result.append(line).append("\n");
                         }
                         
                         // 추가로 남은 출력이 있는지 확인 (한 줄 이상일 경우)
