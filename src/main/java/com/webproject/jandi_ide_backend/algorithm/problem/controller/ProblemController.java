@@ -34,7 +34,7 @@ public class ProblemController {
 
     @GetMapping
     @Operation(summary = "전체 문제 조회",
-            description = "모든 문제의 목록을 조회합니다.",
+            description = "모든 문제의 목록을 조회합니다. 정렬 옵션 추가: sort=level&direction=asc/desc로 난이도 정렬 가능",
             security = { @SecurityRequirement(name = "Authorization") })
     @ApiResponses(value = {
             @ApiResponse(
@@ -47,9 +47,11 @@ public class ProblemController {
     })
     public ResponseEntity<ProblemPageResponseDTO> findAllProblems(
             @RequestParam(value="page",defaultValue = "0") Integer page,
-            @RequestParam(value="size",defaultValue = "10") Integer size
+            @RequestParam(value="size",defaultValue = "10") Integer size,
+            @Parameter(description = "정렬 기준 (level: 난이도순 정렬)") @RequestParam(value="sort", required = false) String sort,
+            @Parameter(description = "정렬 방향 (asc: 오름차순, desc: 내림차순)") @RequestParam(value="direction", required = false) String direction
     ){
-        ProblemPageResponseDTO problems = problemService.getProblems(page,size);
+        ProblemPageResponseDTO problems = problemService.getProblems(page, size, sort, direction);
         return ResponseEntity.ok(problems);
     }
 
