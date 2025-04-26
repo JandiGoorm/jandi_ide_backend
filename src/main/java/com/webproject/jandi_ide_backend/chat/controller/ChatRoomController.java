@@ -357,4 +357,50 @@ public class ChatRoomController {
         List<ChatMessageDTO> messages = chatMessageService.searchMessagesByKeyword(keyword);
         return ResponseEntity.ok(messages);
     }
+
+    /**
+     * 채팅방 메시지를 타입별로 페이징 조회합니다.
+     */
+    @Operation(summary = "채팅방 메시지 타입별 페이징 조회", 
+               description = "채팅방 ID와 메시지 타입(TALK, ENTER, LEAVE)으로 메시지를 페이징 처리하여 조회합니다.")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "조회 성공"),
+            @ApiResponse(responseCode = "400", description = "잘못된 메시지 타입"),
+            @ApiResponse(responseCode = "404", description = "채팅방을 찾을 수 없음")
+    })
+    @GetMapping("/{roomId}/messages/paged/type")
+    public ResponseEntity<Page<ChatMessageDTO>> getRoomMessagesPagedByType(
+            @Parameter(description = "채팅방 ID", required = true) @PathVariable String roomId,
+            @Parameter(description = "메시지 타입 (TALK, ENTER, LEAVE)", example = "TALK") 
+            @RequestParam(required = false) String messageType,
+            @Parameter(description = "페이지 번호 (0부터 시작)", example = "0") 
+            @RequestParam(defaultValue = "0") int page,
+            @Parameter(description = "페이지 크기", example = "20") 
+            @RequestParam(defaultValue = "20") int size) {
+        
+        // 채팅방 존재 확인
+        ChatRoom room = chatRoomService.findRoomById(roomId);
+        if (room == null) {
+            return ResponseEntity.notFound().build();
+        }
+        
+        // 페이징 객체 생성 (최신 메시지가 먼저 오도록 생성 시간 역순으로 정렬)
+        Pageable pageable = PageRequest.of(page, size, Sort.by("timestamp").descending());
+        
+        try {
+            Page<ChatMessageDTO> messagePage;
+            if (messageType != null && !messageType.isEmpty()) {
+                // 메시지 타입 파싱
+                ChatMessageDTO.MessageType type = ChatMessageDTO.MessageType.valueOf(messageType.toUpperCase());
+                messagePage = chatMessageService.getMessagesByRoomIdAndTypePaged(roomId, type, pageable);
+            } else {
+                // 모든 메시지 조회 (타입 필터링 없음)
+                messagePage = chatMessageService.getMessagesByRoomIdPaged(roomId, pageable);
+            }
+            return ResponseEntity.ok(messagePage);
+        } catch (IllegalArgumentException e) {
+            // 잘못된 메시지 타입 처리
+            return ResponseEntity.badRequest().build();
+        }
+    }
 }
