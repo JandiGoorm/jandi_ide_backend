@@ -51,6 +51,8 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.POST, "/api/companies/**","/api/job-postings/**","/api/schedules/**","/api/problems/**","/api/test-cases/**").hasAnyRole("STAFF", "ADMIN")
                         .requestMatchers(HttpMethod.PUT, "/api/companies/**","/api/job-postings/**","/api/schedules/**","/api/problems/**","/api/test-cases/**").hasAnyRole("STAFF", "ADMIN")
                         .requestMatchers(HttpMethod.DELETE, "/api/companies/**","/api/job-postings/**","/api/schedules/**","/api/problems/**","/api/test-cases/**").hasAnyRole("STAFF", "ADMIN")
+                        // 관심 기업은 모두 가능
+                        .requestMatchers("/api/companies/favorite", "/api/companies/favorite/**").permitAll()
                         // 나머지 API 요청은 인증 필요
                         .requestMatchers("/api/**").authenticated()
                         // 그 외 모든 요청 허용
