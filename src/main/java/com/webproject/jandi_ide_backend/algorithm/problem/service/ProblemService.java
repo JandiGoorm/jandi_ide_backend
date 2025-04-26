@@ -32,7 +32,7 @@ public class ProblemService {
         this.testCaseService = testCaseService;
     }
 
-    public ProblemPageResponseDTO getProblems(Integer page, Integer size) {
+    public ProblemPageResponseDTO getProblems(Integer page, Integer size, String sort, String direction) {
         long totalItems = problemRepository.count();
         int totalPages = (int)Math.ceil((double)totalItems/size);
 
@@ -41,7 +41,18 @@ public class ProblemService {
         }
 
         Pageable pageable = PageRequest.of(page, size);
-        Page<Problem>problemPage = problemRepository.findAll(pageable);
+        Page<Problem> problemPage;
+        
+        // 정렬 옵션 처리
+        if (sort != null && sort.equalsIgnoreCase("level")) {
+            if (direction != null && direction.equalsIgnoreCase("desc")) {
+                problemPage = problemRepository.findAllByOrderByLevelDesc(pageable);
+            } else {
+                problemPage = problemRepository.findAllByOrderByLevelAsc(pageable);
+            }
+        } else {
+            problemPage = problemRepository.findAll(pageable);
+        }
 
         List<ProblemResponseDTO> problemDTOs = problemPage.getContent().stream()
                 .map(this::convertToProblemResponseDTO)
