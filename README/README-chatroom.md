@@ -317,7 +317,67 @@ Authorization: Bearer {jwt-token}
   - `200 OK`: 성공
   - `404 Not Found`: 채팅방 없음
 
-### 3. 특정 시간 이후 채팅 메시지 조회
+### 3. 채팅방 메시지 타입별 페이징 조회
+
+채팅방 메시지를 타입별로 필터링하여 페이징 처리하여 조회합니다.
+
+- **URL**: `/rooms/{roomId}/messages/paged/type`
+- **Method**: `GET`
+- **Path Parameters**:
+  - `roomId`: 채팅방 ID
+- **Query Parameters**:
+  - `messageType`: 메시지 타입 (TALK, ENTER, LEAVE 중 하나, 선택적)
+  - `page`: 페이지 번호 (0부터 시작, 기본값: 0)
+  - `size`: 페이지 크기 (기본값: 20)
+- **Headers**:
+  - `Authorization: Bearer {jwt-token}`
+- **Response**: 타입별로 필터링된 페이징 메시지 목록
+  ```json
+  {
+    "content": [
+      {
+        "type": "TALK",
+        "roomId": "550e8400-e29b-41d4-a716-446655440000",
+        "message": "안녕하세요!",
+        "sender": "홍길동",
+        "timestamp": "2023-08-01T12:00:00",
+        "profileImage": "https://example.com/profile-images/user123.jpg"
+      },
+      ...
+    ],
+    "pageable": {
+      "sort": {
+        "sorted": true,
+        "unsorted": false,
+        "empty": false
+      },
+      "pageNumber": 0,
+      "pageSize": 20,
+      "offset": 0,
+      "paged": true,
+      "unpaged": false
+    },
+    "totalPages": 5,
+    "totalElements": 100,
+    "last": false,
+    "numberOfElements": 20,
+    "first": true,
+    "sort": {
+      "sorted": true,
+      "unsorted": false,
+      "empty": false
+    },
+    "size": 20,
+    "number": 0,
+    "empty": false
+  }
+  ```
+- **Status Codes**:
+  - `200 OK`: 성공
+  - `400 Bad Request`: 잘못된 메시지 타입
+  - `404 Not Found`: 채팅방 없음
+
+### 4. 특정 시간 이후 채팅 메시지 조회
 
 채팅방 ID와 기준 시간을 입력받아 해당 시간 이후의 메시지를 조회합니다.
 
@@ -348,7 +408,7 @@ Authorization: Bearer {jwt-token}
   - `400 Bad Request`: 잘못된 요청 (시간 형식 오류 등)
   - `404 Not Found`: 채팅방 없음
 
-### 4. 사용자별 메시지 조회
+### 5. 사용자별 메시지 조회
 
 특정 사용자가 보낸 모든 메시지를 조회합니다.
 
@@ -375,7 +435,7 @@ Authorization: Bearer {jwt-token}
 - **Status Codes**:
   - `200 OK`: 성공
 
-### 5. 메시지 키워드 검색
+### 6. 메시지 키워드 검색
 
 메시지 내용에 특정 키워드가 포함된 메시지를 검색합니다.
 
@@ -497,4 +557,36 @@ function ChatRoomList({ token, onSelectRoom }) {
 }
 
 export default ChatRoomList;
+```
+
+다음은 타입별로 채팅 메시지를 로드하는 함수 예제입니다:
+
+```jsx
+// 타입별 채팅 메시지 로드
+const loadMessagesByType = async (roomId, messageType, page = 0, size = 20) => {
+  try {
+    let url = `https://ide-be.yeonjae.kr/api/chat/rooms/${roomId}/messages/paged/type?page=${page}&size=${size}`;
+    
+    if (messageType) {
+      url += `&messageType=${messageType}`;
+    }
+    
+    const response = await axios.get(url, {
+      headers: {
+        'Authorization': `Bearer ${token}`
+      }
+    });
+    
+    return response.data;
+  } catch (error) {
+    console.error('채팅 메시지 로드 실패:', error);
+    throw error;
+  }
+};
+
+// 사용 예시
+const loadOnlyTalkMessages = async (roomId) => {
+  const talkMessages = await loadMessagesByType(roomId, 'TALK');
+  console.log('대화 메시지만 표시:', talkMessages);
+};
 ``` 
