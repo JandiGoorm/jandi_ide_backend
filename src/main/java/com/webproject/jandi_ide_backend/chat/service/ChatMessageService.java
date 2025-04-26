@@ -65,6 +65,7 @@ public class ChatMessageService {
         chatMessage.setType(messageDTO.getType());
         chatMessage.setSender(messageDTO.getSender());
         chatMessage.setMessage(messageDTO.getMessage());
+        chatMessage.setProfileImage(messageDTO.getProfileImage());
         
         // 타임스탬프 문자열을 LocalDateTime으로 변환
         try {
