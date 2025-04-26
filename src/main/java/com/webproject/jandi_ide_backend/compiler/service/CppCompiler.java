@@ -221,36 +221,19 @@ public class CppCompiler {
         log.debug("Comparing - Actual output: [" + actual + "]");
         log.debug("Comparing - Expected output: [" + expected + "]");
         
-        // 실제 출력에서 실행 결과 부분만 추출
-        String actualOutput = "";
-        if (actual.contains("실행 결과:")) {
-            // 실행 결과: 이후의 모든 내용 가져오기
-            String[] parts = actual.split("실행 결과:\\s*\\n?");
-            if (parts.length > 1) {
-                actualOutput = parts[1].trim();
-                // 첫 번째 줄만 가져오기 (줄바꿈이 있다면)
-                if (actualOutput.contains("\n")) {
-                    String[] lines = actualOutput.split("\\n");
-                    for (String line : lines) {
-                        String trimmed = line.trim();
-                        if (!trimmed.isEmpty()) {
-                            actualOutput = trimmed;
-                            break;
-                        }
-                    }
-                }
-            }
-        } else {
-            actualOutput = actual.trim();
-        }
+        // 실제 출력에서 실행 결과 부분 추출 (필요한 경우)
+        String actualOutput = actual.trim();
+        String expectedOutput = expected.trim();
         
-        // 줄바꿈과 공백 모두 제거
-        actualOutput = actualOutput.replaceAll("\\s+", "");
+        // 두 개 연속된 공백을 줄바꿈으로 변환
+        actualOutput = actualOutput.replaceAll("  ", "\n");
+        expectedOutput = expectedOutput.replaceAll("  ", "\n");
         
-        // 기대 출력에서도 공백 모두 제거
-        String expectedOutput = expected.trim().replaceAll("\\s+", "");
+        // 연속된 줄바꿈을 하나로 정규화
+        actualOutput = actualOutput.replaceAll("\n+", "\n");
+        expectedOutput = expectedOutput.replaceAll("\n+", "\n");
         
-        log.debug("After cleanup - Actual: [" + actualOutput + "], Expected: [" + expectedOutput + "]");
+        log.debug("After formatting - Actual: [" + actualOutput + "], Expected: [" + expectedOutput + "]");
         
         return actualOutput.equals(expectedOutput);
     }

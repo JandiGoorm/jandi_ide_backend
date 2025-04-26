@@ -238,11 +238,19 @@ public class JavaCompiler {
         log.debug("Comparing - Actual output: [" + actual + "]");
         log.debug("Comparing - Expected output: [" + expected + "]");
         
-        // 공백 제거 후 직접 비교
-        String actualOutput = actual.trim().replaceAll("\\s+", "");
-        String expectedOutput = expected.trim().replaceAll("\\s+", "");
+        // 1단계: 양쪽 끝 공백 제거
+        String actualOutput = actual.trim();
+        String expectedOutput = expected.trim();
         
-        log.debug("After cleanup - Actual: [" + actualOutput + "], Expected: [" + expectedOutput + "]");
+        // 2단계: 두 개 연속된 공백을 줄바꿈으로 변환
+        actualOutput = actualOutput.replaceAll("  ", "\n");
+        expectedOutput = expectedOutput.replaceAll("  ", "\n");
+        
+        // 3단계: 연속된 줄바꿈을 하나로 정규화
+        actualOutput = actualOutput.replaceAll("\n+", "\n");
+        expectedOutput = expectedOutput.replaceAll("\n+", "\n");
+        
+        log.debug("After formatting - Actual: [" + actualOutput + "], Expected: [" + expectedOutput + "]");
         
         return actualOutput.equals(expectedOutput);
     }
