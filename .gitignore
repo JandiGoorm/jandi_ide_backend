@@ -36,4 +36,17 @@ out/
 ### VS Code ###
 .vscode/
 
+# Sensitive configuration files
 application-dev.properties
+application-prod.properties
+
+# Docker compose with secrets (use only on server)
+docker-compose.yml
+docker-compose.override.yml
+
+# Deployment scripts with sensitive info
+deploy.sh
+
+# Logs
+logs/
+*.log
