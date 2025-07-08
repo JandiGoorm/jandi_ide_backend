@@ -43,15 +43,11 @@ public class SecurityConfig {
                         .requestMatchers("/swagger-ui/**", "/v3/api-docs/**").permitAll()
                         // 로그인, 리프레시 토큰 요청 허용
                         .requestMatchers("/api/users/login", "/api/users/refresh").permitAll()
-                        // OPTIONS 요청 허용 (CORS preflight)
-                        .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
-                        
                         // 관심 기업 관련 요청 허용 - 특별히 지정
                         .requestMatchers("/api/companies/favorite", "/api/companies/favorite/**").authenticated()
-                        
                         // 채팅 관련 요청은 인증 필요
                         .requestMatchers("/chat/**").authenticated()
-                        
+
                         // 기업 관련 요청 - 관심 기업 제외
                         .requestMatchers(HttpMethod.POST, "/api/companies", "/api/companies/{id}/**").hasAnyRole("STAFF", "ADMIN")
                         .requestMatchers(HttpMethod.PUT, "/api/companies", "/api/companies/{id}/**").hasAnyRole("STAFF", "ADMIN")
@@ -94,9 +90,6 @@ public class SecurityConfig {
             "http://localhost:3000", 
             "http://localhost:5173"
         ));
-        
-        // 모든 출처 허용 패턴 - 위의 setAllowedOrigins와 함께 사용하지 않음
-        // config.addAllowedOriginPattern("*");
         
         // 허용할 HTTP 메서드 설정
         config.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"));
