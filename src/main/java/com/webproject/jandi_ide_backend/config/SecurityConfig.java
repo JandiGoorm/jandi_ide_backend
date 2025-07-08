@@ -32,7 +32,6 @@ public class SecurityConfig {
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
-                .cors(cors -> cors.configurationSource(corsConfigurationSource()))
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(authorize -> authorize
                         // WebSocket 연결 허용
@@ -78,36 +77,5 @@ public class SecurityConfig {
                         )
                 );
         return http.build();
-    }
-
-    @Bean
-    public CorsConfigurationSource corsConfigurationSource() {
-        CorsConfiguration config = new CorsConfiguration();
-        
-        // 명시적으로 특정 도메인 허용 (Netlify 도메인 포함)
-        config.setAllowedOrigins(Arrays.asList(
-            "https://jandiide.netlify.app", 
-            "http://localhost:3000", 
-            "http://localhost:5173"
-        ));
-        
-        // 허용할 HTTP 메서드 설정
-        config.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"));
-        // 허용할 HTTP 헤더 설정
-        config.setAllowedHeaders(Arrays.asList(
-                "Authorization", "Content-Type", "Accept", "Origin", 
-                "X-Requested-With", "Access-Control-Request-Method",
-                "Access-Control-Request-Headers"
-        ));
-        // 인증 정보(쿠키 등) 포함 여부
-        config.setAllowCredentials(true);
-        // 브라우저가 Access-Control-Allow-Headers에 대한 응답을 캐시하는 시간
-        config.setMaxAge(3600L);
-        // 브라우저에 노출할 헤더 설정
-        config.setExposedHeaders(Arrays.asList("Authorization", "Content-Disposition"));
-
-        UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
-        source.registerCorsConfiguration("/**", config);
-        return source;
     }
 }
