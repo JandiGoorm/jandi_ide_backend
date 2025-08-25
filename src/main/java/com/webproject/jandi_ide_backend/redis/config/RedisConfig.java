@@ -65,21 +65,20 @@ public class RedisConfig {
      * Key/HashKey는 String으로, Value/HashValue는 JSON(Jackson)으로 직렬화합니다.
      */
     @Bean
-    public RedisTemplate<String, Object> redisTemplate(RedisConnectionFactory factory) {
+    public RedisTemplate<String, Object> redisTemplate(RedisConnectionFactory factory, ObjectMapper objectMapper) {
         RedisTemplate<String, Object> template = new RedisTemplate<>();
         template.setConnectionFactory(factory);
-
+    
         // String 직렬화 설정 (Key, HashKey)
         StringRedisSerializer stringSerializer = new StringRedisSerializer();
         template.setKeySerializer(stringSerializer);
         template.setHashKeySerializer(stringSerializer);
-
-        // JSON 직렬화 설정 (Value, HashValue) - 위에서 설정한 ObjectMapper 사용
-        Jackson2JsonRedisSerializer<Object> jsonSerializer = new Jackson2JsonRedisSerializer<>(Object.class);
-        jsonSerializer.setObjectMapper(objectMapper()); // objectMapper() 빈 주입 사용
+    
+        // JSON 직렬화 설정 (Value, HashValue) - 생성자를 통해 주입받은 objectMapper 사용
+        Jackson2JsonRedisSerializer<Object> jsonSerializer = new Jackson2JsonRedisSerializer<>(objectMapper, Object.class);
         template.setValueSerializer(jsonSerializer);
         template.setHashValueSerializer(jsonSerializer);
-
+    
         return template;
     }
 
