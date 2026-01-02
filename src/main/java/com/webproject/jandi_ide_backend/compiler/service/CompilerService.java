@@ -22,8 +22,12 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.io.*;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.UUID;
 import java.util.concurrent.*;
 import java.util.stream.Collectors;
 
@@ -213,6 +217,10 @@ public class CompilerService {
         String code = submissionDto.getCode();
         String language = submissionDto.getLanguage();
         
+        // 고유한 작업 디렉토리 생성 (경쟁 상태 방지)
+        String uniqueId = UUID.randomUUID().toString();
+        Path workDir = Paths.get("compiler_workspace", "test", uniqueId);
+        
         // 기본 실행을 위한 간단한 입력값 생성 - 콤마로 구분된 입력으로 변경
         String simpleInput = "1,2";
         
@@ -225,6 +233,10 @@ public class CompilerService {
         SolutionStatus status = SolutionStatus.SUBMITTED;
         
         try {
+            // 작업 디렉토리 생성
+            Files.createDirectories(workDir);
+            log.debug("테스트 모드 작업 디렉토리 생성: {}", workDir);
+            
             // 언어별 처리
             switch (language.toLowerCase()) {
                 case "java":
@@ -286,6 +298,9 @@ public class CompilerService {
             output.append("예상치 못한 오류: ").append(e.getMessage());
             throw new CompilerException("알 수 없는 오류", SolutionStatus.RUNTIME_ERROR, 
                                       e.getMessage(), code, language);
+        } finally {
+            // 작업 디렉토리 정리
+            cleanupWorkDir(workDir);
         }
         
         // Solution 객체 생성 및 저장
@@ -366,11 +381,14 @@ public class CompilerService {
             return false;
         } finally {
             // 임시 파일 정리
-            if (javaFile != null) {
-                javaFile.delete();
+            if (javaFile != null && !javaFile.delete()) {
+                log.warn("파일 삭제 실패: {}", javaFile.getAbsolutePath());
             }
             // 클래스 파일 삭제
-            new File("Main.class").delete();
+            File classFile = new File("Main.class");
+            if (classFile.exists() && !classFile.delete()) {
+                log.warn("파일 삭제 실패: {}", classFile.getAbsolutePath());
+            }
         }
     }
     
@@ -442,11 +460,14 @@ public class CompilerService {
             return false;
         } finally {
             // 임시 파일 정리
-            if (javaFile != null) {
-                javaFile.delete();
+            if (javaFile != null && !javaFile.delete()) {
+                log.warn("파일 삭제 실패: {}", javaFile.getAbsolutePath());
             }
             // 클래스 파일 삭제
-            new File("Main.class").delete();
+            File classFile = new File("Main.class");
+            if (classFile.exists() && !classFile.delete()) {
+                log.warn("파일 삭제 실패: {}", classFile.getAbsolutePath());
+            }
         }
     }
     
@@ -538,8 +559,8 @@ public class CompilerService {
             return false;
         } finally {
             // 임시 파일 정리
-            if (pythonFile != null) {
-                pythonFile.delete();
+            if (pythonFile != null && !pythonFile.delete()) {
+                log.warn("파일 삭제 실패: {}", pythonFile.getAbsolutePath());
             }
         }
     }
@@ -605,8 +626,8 @@ public class CompilerService {
             return false;
         } finally {
             // 임시 파일 정리
-            if (cppFile != null) {
-                cppFile.delete();
+            if (cppFile != null && !cppFile.delete()) {
+                log.warn("파일 삭제 실패: {}", cppFile.getAbsolutePath());
             }
         }
     }
@@ -679,11 +700,325 @@ public class CompilerService {
             return false;
         } finally {
             // 임시 파일 정리
-            if (cppFile != null) {
-                cppFile.delete();
+            if (cppFile != null && !cppFile.delete()) {
+                log.warn("파일 삭제 실패: {}", cppFile.getAbsolutePath());
             }
             // 실행 파일 삭제
-            new File("Main").delete();
+            File execFile = new File("Main");
+            if (execFile.exists() && !execFile.delete()) {
+                log.warn("파일 삭제 실패: {}", execFile.getAbsolutePath());
+            }
+        }
+    }
+    
+    // ========== 작업 디렉토리를 사용하는 오버로드 메서드들 (테스트 모드용) ==========
+    
+    /**
+     * Java 코드 컴파일 여부 확인 (작업 디렉토리 지정)
+     */
+    private boolean checkJavaCompilation(String code, StringBuilder output, Path workDir) {
+        File javaFile = null;
+        Process compileProcess = null;
+        try {
+            javaFile = workDir.resolve("Main.java").toFile();
+            try (FileWriter writer = new FileWriter(javaFile)) {
+                writer.write(code);
+            }
+            
+            ProcessBuilder compilePb = new ProcessBuilder("javac", javaFile.getAbsolutePath());
+            compilePb.directory(workDir.toFile());
+            compileProcess = compilePb.start();
+            
+            String[] results = collectProcessOutput(compileProcess, 10);
+            String stdOut = results[0];
+            String stdErr = results[1];
+            
+            int exitCode = compileProcess.waitFor();
+            
+            if (exitCode != 0) {
+                if (!stdErr.isEmpty()) output.append(stdErr);
+                if (!stdOut.isEmpty()) output.append(stdOut);
+                if (stdErr.isEmpty() && stdOut.isEmpty()) {
+                    output.append("컴파일 실패 (종료 코드: ").append(exitCode).append(")");
+                }
+                return false;
+            }
+            
+            if (!stdOut.isEmpty()) {
+                output.append("컴파일러 출력: ").append(stdOut);
+            }
+            return true;
+        } catch (TimeoutException e) {
+            output.append("컴파일 시간 초과 (10초)");
+            return false;
+        } catch (Exception e) {
+            output.append("컴파일 중 시스템 오류: ").append(e.getMessage());
+            return false;
+        } finally {
+            if (compileProcess != null) {
+                compileProcess.destroyForcibly();
+            }
+        }
+    }
+    
+    /**
+     * Java 코드 실행 여부 확인 (작업 디렉토리 지정)
+     */
+    private boolean checkJavaExecution(String code, String input, StringBuilder output, Path workDir) {
+        Process runProcess = null;
+        try {
+            ProcessBuilder runPb = new ProcessBuilder("java", "Main");
+            runPb.directory(workDir.toFile());
+            runProcess = runPb.start();
+            
+            if (input != null && !input.isEmpty()) {
+                try (BufferedWriter processInput = new BufferedWriter(new OutputStreamWriter(runProcess.getOutputStream()))) {
+                    processInput.write(input);
+                    processInput.newLine();
+                    processInput.flush();
+                }
+            }
+            
+            String[] results = collectProcessOutput(runProcess, 5);
+            String stdOut = results[0];
+            String stdErr = results[1];
+            
+            int exitCode = runProcess.waitFor();
+            
+            output.append("실행 결과 (종료 코드: ").append(exitCode).append("):\n");
+            if (!stdOut.isEmpty()) {
+                output.append("표준 출력:\n").append(stdOut);
+            } else {
+                output.append("(표준 출력 없음)\n");
+            }
+            
+            if (!stdErr.isEmpty()) {
+                output.append("\n오류 출력:\n").append(stdErr);
+                return false;
+            }
+            
+            if (exitCode != 0) {
+                output.append("\n비정상 종료: 종료 코드 ").append(exitCode);
+                return false;
+            }
+            
+            return true;
+        } catch (TimeoutException e) {
+            output.append("실행 시간 초과 (5초)");
+            return false;
+        } catch (Exception e) {
+            output.append("실행 중 시스템 오류: ").append(e.getMessage());
+            return false;
+        } finally {
+            if (runProcess != null) {
+                runProcess.destroyForcibly();
+            }
+        }
+    }
+    
+    /**
+     * Python 코드 실행 여부 확인 (작업 디렉토리 지정)
+     */
+    private boolean checkPythonExecution(String code, String input, StringBuilder output, Path workDir) {
+        File pythonFile = null;
+        Process runProcess = null;
+        try {
+            pythonFile = workDir.resolve("Main.py").toFile();
+            try (FileWriter writer = new FileWriter(pythonFile)) {
+                writer.write(code);
+            }
+            
+            String[] pythonInterpreters = {"python3", "python", "py"};
+            ProcessBuilder runPb = null;
+            boolean started = false;
+            
+            for (String interpreter : pythonInterpreters) {
+                try {
+                    runPb = new ProcessBuilder(interpreter, pythonFile.getAbsolutePath());
+                    runPb.directory(workDir.toFile());
+                    runProcess = runPb.start();
+                    started = true;
+                    break;
+                } catch (IOException e) {
+                    log.debug("Python interpreter not found: {}", interpreter);
+                }
+            }
+            
+            if (!started || runProcess == null) {
+                throw new IOException("Python 인터프리터를 찾을 수 없음");
+            }
+            
+            if (input != null && !input.isEmpty()) {
+                try (BufferedWriter processInput = new BufferedWriter(new OutputStreamWriter(runProcess.getOutputStream()))) {
+                    processInput.write(input);
+                    processInput.newLine();
+                    processInput.flush();
+                }
+            }
+            
+            String[] results = collectProcessOutput(runProcess, 5);
+            String stdOut = results[0];
+            String stdErr = results[1];
+            
+            int exitCode = runProcess.waitFor();
+            
+            output.append("실행 결과 (종료 코드: ").append(exitCode).append("):\n");
+            if (!stdOut.isEmpty()) {
+                output.append("표준 출력:\n").append(stdOut);
+            } else {
+                output.append("(표준 출력 없음)\n");
+            }
+            
+            if (!stdErr.isEmpty()) {
+                output.append("\n오류 출력:\n").append(stdErr);
+                return false;
+            }
+            
+            if (exitCode != 0) {
+                output.append("\n비정상 종료: 종료 코드 ").append(exitCode);
+                return false;
+            }
+            
+            return true;
+        } catch (TimeoutException e) {
+            output.append("실행 시간 초과 (5초)");
+            return false;
+        } catch (Exception e) {
+            output.append("실행 중 시스템 오류: ").append(e.getMessage());
+            return false;
+        } finally {
+            if (runProcess != null) {
+                runProcess.destroyForcibly();
+            }
+        }
+    }
+    
+    /**
+     * C++ 코드 컴파일 여부 확인 (작업 디렉토리 지정)
+     */
+    private boolean checkCppCompilation(String code, StringBuilder output, Path workDir) {
+        File cppFile = null;
+        Process compileProcess = null;
+        try {
+            cppFile = workDir.resolve("Main.cpp").toFile();
+            try (FileWriter writer = new FileWriter(cppFile)) {
+                writer.write(code);
+            }
+            
+            ProcessBuilder compilePb = new ProcessBuilder("g++", cppFile.getAbsolutePath(), "-o", workDir.resolve("Main").toString());
+            compilePb.directory(workDir.toFile());
+            compileProcess = compilePb.start();
+            
+            String[] results = collectProcessOutput(compileProcess, 10);
+            String stdOut = results[0];
+            String stdErr = results[1];
+            
+            int exitCode = compileProcess.waitFor();
+            
+            if (exitCode != 0) {
+                if (!stdErr.isEmpty()) output.append(stdErr);
+                if (!stdOut.isEmpty()) output.append(stdOut);
+                if (stdErr.isEmpty() && stdOut.isEmpty()) {
+                    output.append("컴파일 실패 (종료 코드: ").append(exitCode).append(")");
+                }
+                return false;
+            }
+            
+            if (!stdOut.isEmpty()) {
+                output.append("컴파일러 출력: ").append(stdOut);
+            }
+            return true;
+        } catch (TimeoutException e) {
+            output.append("컴파일 시간 초과 (10초)");
+            return false;
+        } catch (Exception e) {
+            output.append("컴파일 중 시스템 오류: ").append(e.getMessage());
+            return false;
+        } finally {
+            if (compileProcess != null) {
+                compileProcess.destroyForcibly();
+            }
+        }
+    }
+    
+    /**
+     * C++ 코드 실행 여부 확인 (작업 디렉토리 지정)
+     */
+    private boolean checkCppExecution(String code, String input, StringBuilder output, Path workDir) {
+        Process runProcess = null;
+        try {
+            ProcessBuilder runPb = new ProcessBuilder(workDir.resolve("Main").toString());
+            runPb.directory(workDir.toFile());
+            runProcess = runPb.start();
+            
+            if (input != null && !input.isEmpty()) {
+                try (BufferedWriter processInput = new BufferedWriter(new OutputStreamWriter(runProcess.getOutputStream()))) {
+                    processInput.write(input);
+                    processInput.newLine();
+                    processInput.flush();
+                }
+            }
+            
+            String[] results = collectProcessOutput(runProcess, 5);
+            String stdOut = results[0];
+            String stdErr = results[1];
+            
+            int exitCode = runProcess.waitFor();
+            
+            output.append("실행 결과 (종료 코드: ").append(exitCode).append("):\n");
+            if (!stdOut.isEmpty()) {
+                output.append("표준 출력:\n").append(stdOut);
+            } else {
+                output.append("(표준 출력 없음)\n");
+            }
+            
+            if (!stdErr.isEmpty()) {
+                output.append("\n오류 출력:\n").append(stdErr);
+                return false;
+            }
+            
+            if (exitCode != 0) {
+                output.append("\n비정상 종료: 종료 코드 ").append(exitCode);
+                return false;
+            }
+            
+            return true;
+        } catch (TimeoutException e) {
+            output.append("실행 시간 초과 (5초)");
+            return false;
+        } catch (Exception e) {
+            output.append("실행 중 시스템 오류: ").append(e.getMessage());
+            return false;
+        } finally {
+            if (runProcess != null) {
+                runProcess.destroyForcibly();
+            }
+        }
+    }
+    
+    /**
+     * 작업 디렉토리를 재귀적으로 삭제
+     */
+    private void cleanupWorkDir(Path workDir) {
+        if (workDir == null) return;
+        
+        try {
+            File dir = workDir.toFile();
+            if (dir.exists()) {
+                File[] files = dir.listFiles();
+                if (files != null) {
+                    for (File file : files) {
+                        if (!file.delete()) {
+                            log.warn("파일 삭제 실패: {}", file.getAbsolutePath());
+                        }
+                    }
+                }
+                if (!dir.delete()) {
+                    log.warn("디렉토리 삭제 실패: {}", dir.getAbsolutePath());
+                }
+            }
+        } catch (Exception e) {
+            log.warn("작업 디렉토리 정리 중 오류: {}", e.getMessage());
         }
     }
     
@@ -902,6 +1237,10 @@ public class CompilerService {
         String code = submissionDto.getCode();
         String language = submissionDto.getLanguage();
         
+        // 고유한 작업 디렉토리 생성 (경쟁 상태 방지)
+        String uniqueId = UUID.randomUUID().toString();
+        Path workDir = Paths.get("compiler_workspace", "test", uniqueId);
+        
         // 기본 실행을 위한 간단한 입력값 생성 - 콤마로 구분된 입력으로 변경
         String simpleInput = "1,2";
         
@@ -914,17 +1253,21 @@ public class CompilerService {
         SolutionStatus status = SolutionStatus.SUBMITTED;
         
         try {
+            // 작업 디렉토리 생성
+            Files.createDirectories(workDir);
+            log.debug("테스트 모드 작업 디렉토리 생성: {}", workDir);
+            
             // 언어별 처리
             switch (language.toLowerCase()) {
                 case "java":
                     output.append("자바 코드 컴파일 시작...\n");
-                    isCompiled = checkJavaCompilation(code, output);
+                    isCompiled = checkJavaCompilation(code, output, workDir);
                     if (!isCompiled) {
                         status = SolutionStatus.COMPILATION_ERROR;
                         throw new CompilerException("자바 컴파일 에러", status, output.toString(), code, language);
                     }
                     output.append("컴파일 성공. 실행 시작...\n\n");
-                    isExecuted = checkJavaExecution(code, simpleInput, output);
+                    isExecuted = checkJavaExecution(code, simpleInput, output, workDir);
                     if (!isExecuted) {
                         status = SolutionStatus.RUNTIME_ERROR;
                         throw new CompilerException("자바 실행 오류", status, output.toString(), code, language);
@@ -934,7 +1277,7 @@ public class CompilerService {
                 case "python":
                     output.append("파이썬 코드 실행 시작...\n");
                     isCompiled = true; // Python은 인터프리터 언어라 컴파일 단계가 없음
-                    isExecuted = checkPythonExecution(code, simpleInput, output);
+                    isExecuted = checkPythonExecution(code, simpleInput, output, workDir);
                     if (!isExecuted) {
                         status = SolutionStatus.RUNTIME_ERROR;
                         throw new CompilerException("파이썬 실행 오류", status, output.toString(), code, language);
@@ -943,13 +1286,13 @@ public class CompilerService {
                     
                 case "c++":
                     output.append("C++ 코드 컴파일 시작...\n");
-                    isCompiled = checkCppCompilation(code, output);
+                    isCompiled = checkCppCompilation(code, output, workDir);
                     if (!isCompiled) {
                         status = SolutionStatus.COMPILATION_ERROR;
                         throw new CompilerException("C++ 컴파일 에러", status, output.toString(), code, language);
                     }
                     output.append("컴파일 성공! 실행 시작...\n\n");
-                    isExecuted = checkCppExecution(code, simpleInput, output);
+                    isExecuted = checkCppExecution(code, simpleInput, output, workDir);
                     if (!isExecuted) {
                         status = SolutionStatus.RUNTIME_ERROR;
                         throw new CompilerException("C++ 실행 오류", status, output.toString(), code, language);
@@ -975,6 +1318,9 @@ public class CompilerService {
             output.append("예상치 못한 오류: ").append(e.getMessage());
             throw new CompilerException("알 수 없는 오류", SolutionStatus.RUNTIME_ERROR, 
                                       e.getMessage(), code, language);
+        } finally {
+            // 작업 디렉토리 정리
+            cleanupWorkDir(workDir);
         }
         
         // 결과 반환
