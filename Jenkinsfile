@@ -26,21 +26,7 @@ pipeline {
             post {
                 always {
                     junit '**/build/test-results/test/*.xml'
-                    // HTML Publisher 플러그인이 설치된 경우에만 리포트 발행
-                    script {
-                        try {
-                            publishHTML([
-                                allowMissing: true,
-                                alwaysLinkToLastBuild: true,
-                                keepAll: true,
-                                reportDir: 'build/reports/tests/test',
-                                reportFiles: 'index.html',
-                                reportName: 'Test Report'
-                            ])
-                        } catch (Exception e) {
-                            echo "HTML Publisher plugin not available, skipping HTML report: ${e.message}"
-                        }
-                    }
+                    // HTML 리포트는 build/reports/tests/test/index.html에서 직접 확인 가능
                 }
             }
         }
