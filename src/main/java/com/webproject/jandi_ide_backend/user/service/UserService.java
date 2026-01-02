@@ -203,9 +203,8 @@ public class UserService {
         try {
             String userInfoUrl = "https://api.github.com/user";
 
-            RestTemplate restTemplate = new RestTemplate();
             HttpHeaders headers = new HttpHeaders();
-            log.info("액세스 토큰 길이: {}", accessToken != null ? accessToken.length() : 0);
+            log.debug("GitHub 사용자 정보 요청 시작");
             
             // Accept 헤더 추가 (GitHub API v3)
             headers.setBearerAuth(accessToken);
@@ -214,7 +213,7 @@ public class UserService {
 
             HttpEntity<Void> request = new HttpEntity<>(headers);
 
-            log.info("GitHub API 요청: {}", userInfoUrl);
+            log.debug("GitHub API 요청: {}", userInfoUrl);
             
             ResponseEntity<Map> response = restTemplate.exchange(
                     userInfoUrl,
@@ -223,10 +222,10 @@ public class UserService {
                     Map.class
             );
             
-            log.info("GitHub API 응답 상태: {}", response.getStatusCode());
+            log.debug("GitHub API 응답 상태: {}", response.getStatusCode());
 
             Map<String, Object> userInfoMap = response.getBody();
-            log.info("userInfoMap: {}", userInfoMap);
+            log.debug("GitHub 사용자 정보 수신 완료");
 
             String profileImage = (String) userInfoMap.get("avatar_url");
             String email = userInfoMap.get("email") == null ? "null" : (String) userInfoMap.get("email");
@@ -262,7 +261,6 @@ public class UserService {
 
         // 2. 깃헙 API를 통해 유저의 레포지토리 정보를 가져옵니다.
         String reposUrl = String.format("https://api.github.com/users/%s/repos", user.getGithubUsername());
-        RestTemplate restTemplate = new RestTemplate();
         HttpHeaders headers = new HttpHeaders();
         headers.setBearerAuth(githubToken);
         headers.setAccept(Collections.singletonList(MediaType.APPLICATION_JSON));
@@ -272,14 +270,14 @@ public class UserService {
         
         ResponseEntity<Map[]> response;
         try {
-            log.info("GitHub 레포지토리 정보 요청: {}", reposUrl);
+            log.debug("GitHub 레포지토리 정보 요청: {}", reposUrl);
             response = restTemplate.exchange(
                     reposUrl,
                     HttpMethod.GET,
                     request,
                     Map[].class
             );
-            log.info("GitHub 레포지토리 응답 상태: {}", response.getStatusCode());
+            log.debug("GitHub 레포지토리 응답 상태: {}", response.getStatusCode());
         } catch (HttpClientErrorException.Unauthorized e) {
             log.error("GitHub 레포지토리 요청 401 Unauthorized 오류 - 토큰이 만료되었거나 유효하지 않습니다: {}", e.getMessage());
             throw new CustomException(CustomErrorCodes.GITHUB_AUTH_EXPIRED);
@@ -321,7 +319,7 @@ public class UserService {
                 })
                 .toArray(UserRepoDTO[]::new);
 
-        log.info("레포지토리 조회 완료: {} 개", userRepoDTOs.length);
+        log.debug("레포지토리 조회 완료: {} 개", userRepoDTOs.length);
         return userRepoDTOs;
     }
 

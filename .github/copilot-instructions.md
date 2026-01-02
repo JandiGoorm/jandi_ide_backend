@@ -84,7 +84,18 @@ JWT_SECRET                          # JWT 서명 키 (32자 이상)
 ### 채팅 시스템
 - WebSocket 연결: `/ws` 엔드포인트 (SockJS 폴백 지원)
 - 메시지 발행: `/app/chat/message`, 구독: `/topic/chat/room/{roomId}`
-- 상세 API: [README/README-websocket.md](README/README-websocket.md), [README/README-chatroom.md](README/README-chatroom.md)
+- 상세 API: [docs/README-websocket.md](docs/README-websocket.md), [docs/README-chatroom.md](docs/README-chatroom.md)
+
+## 보안 관련
+- 보안 취약점 분석: [docs/SECURITY_VULNERABILITIES.md](docs/SECURITY_VULNERABILITIES.md) 참조
+- DTO 입력 검증: `@Valid`, `@NotBlank`, `@Size`, `@Pattern` 어노테이션 필수
+- 민감 정보 로깅 금지: GitHub 토큰, 비밀번호 등은 `log.debug` 레벨만 허용
+- RestTemplate은 Bean 주입으로 재사용 (매번 생성 금지)
+
+## 테스트 작성
+- 테스트 가이드: [docs/TESTING_GUIDE.md](docs/TESTING_GUIDE.md) 참조
+- 블랙박스 테스트 + 동등 분할 기법 적용
+- 메서드명 규칙: `{메서드명}_{시나리오}_{기대결과}`
 
 ## 주의사항
 - JPA `ddl-auto=validate` 설정 - 스키마 변경 시 마이그레이션 필요
