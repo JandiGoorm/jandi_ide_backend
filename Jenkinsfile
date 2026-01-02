@@ -53,6 +53,11 @@ pipeline {
                     
                     echo "Building Docker image with BuildKit cache: ${fullImageName}"
                     
+                    // 캐시 재사용을 위해 latest 이미지 pull (없으면 무시)
+                    docker.withRegistry("https://ghcr.io", 'github-token') {
+                        sh "docker pull ${latestImageName} || true"
+                    }
+                    
                     // BuildKit 캐시를 활용한 Docker 빌드
                     sh """
                         docker build \

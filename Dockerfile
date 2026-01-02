@@ -22,9 +22,8 @@ RUN --mount=type=cache,target=/root/.gradle \
 # Runtime stage
 FROM openjdk:17-jdk-slim
 
-# 패키지 설치 (캐시 활용)
-RUN --mount=type=cache,target=/var/cache/apt \
-    apt-get update && apt-get install -y --no-install-recommends \
+# 패키지 설치
+RUN apt-get update && apt-get install -y --no-install-recommends \
     curl \
     gcc \
     g++ \
