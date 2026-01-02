@@ -26,6 +26,7 @@ import java.util.*;
 public class UserService {
     private final JwtTokenProvider jwtTokenProvider;
     private final UserRepository userRepository;
+    private final RestTemplate restTemplate;
 
     @Value("${github.client.id}")
     private String githubClientId;
@@ -75,15 +76,14 @@ public class UserService {
             params.add("client_secret", githubClientSecret);
             params.add("code", code);
 
-            log.info("GitHub 인증 코드: {}, client_id: {}", code, githubClientId.substring(0, 5) + "...");
+            log.debug("GitHub 토큰 요청 시작");
 
-            RestTemplate restTemplate = new RestTemplate();
             HttpHeaders headers = new HttpHeaders();
             headers.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
             headers.setAccept(Collections.singletonList(MediaType.APPLICATION_JSON));
             headers.set("User-Agent", "JandiIdeBackend");  // GitHub API는 User-Agent 헤더를 요구할 수 있음
 
-            log.info("GitHub 토큰 요청: {}", tokenUrl);
+            log.debug("GitHub OAuth 토큰 요청");
             
             response = restTemplate.postForEntity(
                     tokenUrl,
@@ -91,16 +91,16 @@ public class UserService {
                     Map.class
             );
             
-            log.info("GitHub 토큰 응답 상태: {}", response.getStatusCode());
+            log.debug("GitHub 토큰 응답 상태: {}", response.getStatusCode());
         } catch (HttpClientErrorException e) {
-            log.error("GitHub 토큰 요청 HTTP 오류 (상태 코드: {}): {}", e.getStatusCode(), e.getMessage());
+            log.error("GitHub 토큰 요청 HTTP 오류: 상태 코드 {}", e.getStatusCode());
             throw new CustomException(CustomErrorCodes.GITHUB_LOGIN_FAILED);
         } catch (Exception e) {
-            log.error("GitHub 토큰 요청 오류: {}", e.getMessage(), e);
+            log.error("GitHub 토큰 요청 오류", e);
             throw new CustomException(CustomErrorCodes.GITHUB_API_FAILED);
         }
 
-        log.info("GitHub 응답: {}", response);
+        log.debug("GitHub 응답 수신 완료");
 
         if (response.getStatusCode().is2xxSuccessful() && response.getBody() != null) {
             Map body = response.getBody();
@@ -117,7 +117,7 @@ public class UserService {
                 throw new CustomException(CustomErrorCodes.GITHUB_LOGIN_FAILED);
             }
             
-            log.info("GitHub 액세스 토큰 길이: {}", accessToken.length());
+            log.debug("GitHub 액세스 토큰 수신 완료");
 
             UserInfoDTO userInfo;
             try {
