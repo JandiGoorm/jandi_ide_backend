@@ -15,6 +15,28 @@ pipeline {
             }
         }
 
+        stage('Test') {
+            steps {
+                script {
+                    echo "Running tests..."
+                    sh './gradlew test --no-daemon'
+                }
+            }
+            post {
+                always {
+                    junit '**/build/test-results/test/*.xml'
+                    publishHTML([
+                        allowMissing: false,
+                        alwaysLinkToLastBuild: true,
+                        keepAll: true,
+                        reportDir: 'build/reports/tests/test',
+                        reportFiles: 'index.html',
+                        reportName: 'Test Report'
+                    ])
+                }
+            }
+        }
+
         stage('Build and Push to GHCR') {
             steps {
                 script {
