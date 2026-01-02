@@ -50,3 +50,5 @@ deploy.sh
 # Logs
 logs/
 *.log
+jenkins_logs.txt
+*.log
