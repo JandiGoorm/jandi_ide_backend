@@ -20,7 +20,7 @@ RUN --mount=type=cache,target=/root/.gradle \
     ./gradlew build --no-daemon -x test
 
 # Runtime stage
-FROM openjdk:17-jdk-slim
+FROM eclipse-temurin:17-jre
 
 # 패키지 설치
 RUN apt-get update && apt-get install -y --no-install-recommends \
