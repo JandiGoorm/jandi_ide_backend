@@ -36,6 +36,9 @@ pipeline {
                     
                     echo "Building Docker image with BuildKit cache: ${fullImageName}"
                     
+                    // Jenkins 빌드: application.properties.example 복사
+                    sh 'cp src/main/resources/application.properties.example src/main/resources/application.properties'
+                    
                     // 캐시 재사용을 위해 latest 이미지 pull (없으면 무시)
                     docker.withRegistry("https://ghcr.io", 'github-token') {
                         sh "docker pull ${latestImageName} || true"
