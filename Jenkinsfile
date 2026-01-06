@@ -3,10 +3,8 @@ pipeline {
 
     environment {
         GHCR_OWNER = 'kyj0503'
-        EC2_HOST = 'ide.yeonjae.kr'
-        EC2_USER = 'ubuntu'
-        IMAGE_NAME = 'web-ide'
-        DOCKER_BUILDKIT = '1'  // BuildKit 활성화
+        IMAGE_NAME = 'jandi-ide'
+        DOCKER_BUILDKIT = '1'
     }
 
     stages {
@@ -26,7 +24,6 @@ pipeline {
             post {
                 always {
                     junit '**/build/test-results/test/*.xml'
-                    // HTML 리포트는 build/reports/tests/test/index.html에서 직접 확인 가능
                 }
             }
         }
@@ -63,18 +60,10 @@ pipeline {
             }
         }
 
-        stage('Deploy to EC2') {
+        // 배포는 home-server에서 담당
+        stage('Trigger Deploy') {
             steps {
-                script {
-                    def fullImageName = "ghcr.io/${env.GHCR_OWNER}/${env.IMAGE_NAME}:${env.BUILD_NUMBER}"
-                    withCredentials([sshUserPrivateKey(credentialsId: 'ec2-ssh-key', keyFileVariable: 'EC2_PRIVATE_KEY')]) {
-                        echo "Deploying to EC2 host: ${env.EC2_HOST}"
-                        sh """
-                            ssh -o StrictHostKeyChecking=no -i \${EC2_PRIVATE_KEY} ${env.EC2_USER}@${env.EC2_HOST} \
-                            "bash /home/ubuntu/spring-app/deploy.sh ${fullImageName}"
-                        """
-                    }
-                }
+                build job: 'home-server-deploy', wait: false, propagate: false
             }
         }
     }
@@ -82,6 +71,12 @@ pipeline {
     post {
         always {
             cleanWs()
+        }
+        success {
+            echo '✅ Build and Push completed successfully!'
+        }
+        failure {
+            echo '❌ Build failed!'
         }
     }
 }
