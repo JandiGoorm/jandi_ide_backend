@@ -1,6 +1,10 @@
 pipeline {
     agent any
 
+    tools {
+        jdk 'jdk21'
+    }
+
     environment {
         GHCR_OWNER = 'kyj0503'
         IMAGE_NAME = 'jandi-ide'
@@ -23,12 +27,21 @@ pipeline {
             }
             post {
                 always {
-                    junit '**/build/test-results/test/*.xml'
+                    junit allowEmptyResults: true, testResults: '**/build/test-results/test/*.xml'
+                }
+                failure {
+                    echo "Tests failed. Stopping pipeline."
                 }
             }
         }
 
         stage('Build and Push to GHCR') {
+            when {
+                anyOf {
+                    branch 'main'
+                    branch 'master'
+                }
+            }
             steps {
                 script {
                     def fullImageName = "ghcr.io/${env.GHCR_OWNER}/${env.IMAGE_NAME}:${env.BUILD_NUMBER}"
@@ -65,6 +78,12 @@ pipeline {
 
         // 배포는 home-server에서 담당
         stage('Trigger Deploy') {
+            when {
+                anyOf {
+                    branch 'main'
+                    branch 'master'
+                }
+            }
             steps {
                 build job: 'home-server-deploy', wait: false, propagate: false
             }
