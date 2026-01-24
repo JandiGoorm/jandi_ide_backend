@@ -35,7 +35,7 @@ pipeline {
             }
         }
 
-        stage('Build and Push to GHCR') {
+        stage('Setup Buildx') {
             when {
                 anyOf {
                     branch 'main'
@@ -44,34 +44,46 @@ pipeline {
             }
             steps {
                 script {
-                    def fullImageName = "ghcr.io/${env.GHCR_OWNER}/${env.IMAGE_NAME}:${env.BUILD_NUMBER}"
-                    def latestImageName = "ghcr.io/${env.GHCR_OWNER}/${env.IMAGE_NAME}:latest"
+                    // Docker Buildx 설정 (멀티 아키텍처 빌드용)
+                    sh '''
+                        docker buildx create --name multiarch-builder --use --bootstrap || docker buildx use multiarch-builder
+                        docker buildx inspect --bootstrap
+                    '''
+                }
+            }
+        }
+
+        stage('Build and Push Multi-Arch Image') {
+            when {
+                anyOf {
+                    branch 'main'
+                    branch 'master'
+                }
+            }
+            steps {
+                script {
+                    def fullImageName = "ghcr.io/${env.GHCR_OWNER}/${env.IMAGE_NAME}"
                     
-                    echo "Building Docker image with BuildKit cache: ${fullImageName}"
+                    echo "Building multi-arch Docker image: ${fullImageName}"
                     
                     // Jenkins 빌드: application.properties.example 복사
                     sh 'cp src/main/resources/application.properties.example src/main/resources/application.properties'
                     
-                    // 캐시 재사용을 위해 latest 이미지 pull (없으면 무시)
-                    docker.withRegistry("https://ghcr.io", 'github-token') {
-                        sh "docker pull ${latestImageName} || true"
+                    // GHCR 로그인
+                    withCredentials([usernamePassword(credentialsId: 'github-token', usernameVariable: 'GITHUB_USER', passwordVariable: 'GITHUB_TOKEN')]) {
+                        sh 'echo $GITHUB_TOKEN | docker login ghcr.io -u $GITHUB_USER --password-stdin'
                     }
                     
-                    // BuildKit 캐시를 활용한 Docker 빌드
+                    // 멀티 아키텍처 빌드 및 푸시 (AMD64 + ARM64)
                     sh """
-                        docker build \
+                        docker buildx build \
+                            --platform linux/amd64,linux/arm64 \
                             --build-arg BUILDKIT_INLINE_CACHE=1 \
-                            --cache-from ${latestImageName} \
-                            -t ${fullImageName} \
-                            -t ${latestImageName} \
+                            --tag ${fullImageName}:${env.BUILD_NUMBER} \
+                            --tag ${fullImageName}:latest \
+                            --push \
                             .
                     """
-                    
-                    docker.withRegistry("https://ghcr.io", 'github-token') {
-                        echo "Pushing Docker images to GHCR..."
-                        sh "docker push ${fullImageName}"
-                        sh "docker push ${latestImageName}"
-                    }
                 }
             }
         }
@@ -98,6 +110,10 @@ pipeline {
             echo '✅ Build and Push completed successfully!'
         }
         failure {
+            echo '❌ Build failed!'
+        }
+    }
+}
             echo '❌ Build failed!'
         }
     }
