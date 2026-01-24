@@ -1,0 +1,61 @@
+# ===========================================
+# Jandi IDE Backend Application Properties Sample
+# ===========================================
+# 이 파일을 복사하여 application.properties를 생성하세요
+# 시크릿 값은 .env.example을 참고하여 환경변수로 설정하세요
+
+spring.profiles.active=dev
+spring.application.name=jandi_ide_backend
+
+# ===========================================
+# Database (MySQL)
+# ===========================================
+spring.datasource.driver-class-name=com.mysql.cj.jdbc.Driver
+spring.datasource.url=${DB_URL}
+spring.datasource.username=${DB_USERNAME}
+spring.datasource.password=${DB_PASSWORD}
+
+# JPA
+spring.jpa.hibernate.ddl-auto=validate
+spring.jpa.show-sql=true
+spring.jpa.properties.hibernate.format_sql=true
+
+# ===========================================
+# MongoDB
+# ===========================================
+spring.data.mongodb.uri=${MONGO_DB}
+
+# ===========================================
+# Redis
+# ===========================================
+spring.data.redis.host=localhost
+spring.data.redis.password=${REDIS_PW}
+spring.data.redis.port=6379
+spring.data.redis.timeout=30000
+spring.data.redis.lettuce.pool.max-active=8
+spring.data.redis.lettuce.pool.max-idle=8
+spring.data.redis.lettuce.pool.min-idle=2
+
+# ===========================================
+# GitHub OAuth
+# ===========================================
+github.client.id=${GITHUB_CLIENT_ID}
+github.client.secret=${GITHUB_CLIENT_SECRET}
+
+# ===========================================
+# JWT
+# ===========================================
+jwt.secret=${JWT_SECRET}
+
+# ===========================================
+# Swagger
+# ===========================================
+springdoc.override-with-generic-response=false
+springdoc.default-produces-media-type=application/json
+springdoc.default-consumes-media-type=application/json
+
+# ===========================================
+# Actuator (Monitoring)
+# ===========================================
+management.endpoints.web.exposure.include=health,prometheus
+management.endpoint.health.show-details=always

@@ -32,7 +32,6 @@ public class SecurityConfig {
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
-                .cors(cors -> cors.configurationSource(corsConfigurationSource()))
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(authorize -> authorize
                         // WebSocket 연결 허용
@@ -43,15 +42,11 @@ public class SecurityConfig {
                         .requestMatchers("/swagger-ui/**", "/v3/api-docs/**").permitAll()
                         // 로그인, 리프레시 토큰 요청 허용
                         .requestMatchers("/api/users/login", "/api/users/refresh").permitAll()
-                        // OPTIONS 요청 허용 (CORS preflight)
-                        .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
-                        
                         // 관심 기업 관련 요청 허용 - 특별히 지정
                         .requestMatchers("/api/companies/favorite", "/api/companies/favorite/**").authenticated()
-                        
                         // 채팅 관련 요청은 인증 필요
                         .requestMatchers("/chat/**").authenticated()
-                        
+
                         // 기업 관련 요청 - 관심 기업 제외
                         .requestMatchers(HttpMethod.POST, "/api/companies", "/api/companies/{id}/**").hasAnyRole("STAFF", "ADMIN")
                         .requestMatchers(HttpMethod.PUT, "/api/companies", "/api/companies/{id}/**").hasAnyRole("STAFF", "ADMIN")
@@ -82,39 +77,5 @@ public class SecurityConfig {
                         )
                 );
         return http.build();
-    }
-
-    @Bean
-    public CorsConfigurationSource corsConfigurationSource() {
-        CorsConfiguration config = new CorsConfiguration();
-        
-        // 명시적으로 특정 도메인 허용 (Netlify 도메인 포함)
-        config.setAllowedOrigins(Arrays.asList(
-            "https://jandiide.netlify.app", 
-            "http://localhost:3000", 
-            "http://localhost:5173"
-        ));
-        
-        // 모든 출처 허용 패턴 - 위의 setAllowedOrigins와 함께 사용하지 않음
-        // config.addAllowedOriginPattern("*");
-        
-        // 허용할 HTTP 메서드 설정
-        config.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"));
-        // 허용할 HTTP 헤더 설정
-        config.setAllowedHeaders(Arrays.asList(
-                "Authorization", "Content-Type", "Accept", "Origin", 
-                "X-Requested-With", "Access-Control-Request-Method",
-                "Access-Control-Request-Headers"
-        ));
-        // 인증 정보(쿠키 등) 포함 여부
-        config.setAllowCredentials(true);
-        // 브라우저가 Access-Control-Allow-Headers에 대한 응답을 캐시하는 시간
-        config.setMaxAge(3600L);
-        // 브라우저에 노출할 헤더 설정
-        config.setExposedHeaders(Arrays.asList("Authorization", "Content-Disposition"));
-
-        UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
-        source.registerCorsConfiguration("/**", config);
-        return source;
     }
 }

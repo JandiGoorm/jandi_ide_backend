@@ -15,6 +15,7 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -94,7 +95,7 @@ public class CompilerController {
                     )
                 }
             ) 
-            @RequestBody CodeSubmissionDto submissionDto) {
+            @Valid @RequestBody CodeSubmissionDto submissionDto) {
         log.debug("코드 컴파일 요청: 사용자={}, 문제={}, 언어={}", 
             submissionDto.getUserId(), 
             submissionDto.getProblemId(), 
@@ -154,7 +155,7 @@ public class CompilerController {
                     )
                 }
             ) 
-            @RequestBody SaveSolutionDto saveSolutionDto) {
+            @Valid @RequestBody SaveSolutionDto saveSolutionDto) {
         log.debug("솔루션 저장 요청: 사용자={}, 문제={}, 언어={}", 
             saveSolutionDto.getUserId(), 
             saveSolutionDto.getProblemId(), 
