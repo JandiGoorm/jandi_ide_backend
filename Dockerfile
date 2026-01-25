@@ -1,28 +1,38 @@
-# syntax=docker/dockerfile:1.4
-
-# Build stage - 의존성과 소스를 분리하여 캐시 효율 극대화
-FROM gradle:8.4-jdk17 AS build
+# 1. 빌드 스테이지: 표준 JDK 환경에서 프로젝트의 Gradle Wrapper를 사용해 빌드
+FROM eclipse-temurin:21-jdk-jammy AS build
 
 WORKDIR /app
 
-# 1단계: Gradle 래퍼와 설정 파일만 복사 (변경 빈도 낮음)
-COPY gradle/ gradle/
-COPY gradlew build.gradle settings.gradle ./
-RUN chmod +x gradlew
+# Ubuntu 미러를 Kakao로 변경 (apt 속도 향상)
+RUN sed -i 's@archive.ubuntu.com@mirror.kakao.com@g' /etc/apt/sources.list && \
+    sed -i 's@security.ubuntu.com@mirror.kakao.com@g' /etc/apt/sources.list
 
-# 2단계: 의존성만 먼저 다운로드 (소스 변경 시 캐시 재사용)
-RUN --mount=type=cache,target=/root/.gradle \
-    ./gradlew dependencies --no-daemon
+# Gradle 관련 파일 복사
+COPY gradlew .
+COPY gradle gradle
+COPY build.gradle settings.gradle ./
 
-# 3단계: 소스 복사 및 빌드
-COPY src/ src/
-RUN --mount=type=cache,target=/root/.gradle \
-    ./gradlew build --no-daemon -x test
+# 실행 권한 부여
+RUN chmod +x ./gradlew
 
-# Runtime stage
-FROM eclipse-temurin:17-jre
+# 소스 코드 복사
+COPY src src
 
-# 패키지 설치
+# 최종 JAR 파일 빌드
+RUN ./gradlew build -x test --no-daemon
+
+# -----------------------------------------------------
+
+# 2. 실행 스테이지: JRE + 컴파일 환경 구성
+FROM eclipse-temurin:21-jre-jammy
+
+WORKDIR /app
+
+# Ubuntu 미러를 Kakao로 변경 (다운로드 속도 향상)
+RUN sed -i 's@archive.ubuntu.com@mirror.kakao.com@g' /etc/apt/sources.list && \
+    sed -i 's@security.ubuntu.com@mirror.kakao.com@g' /etc/apt/sources.list
+
+# 패키지 설치 (컴파일 환경 + curl for healthcheck)
 RUN apt-get update && apt-get install -y --no-install-recommends \
     curl \
     gcc \
@@ -31,16 +41,18 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     python3-pip \
     && rm -rf /var/lib/apt/lists/*
 
-WORKDIR /app
+# compiler_workspace 디렉토리 생성
 RUN mkdir -p /app/compiler_workspace
+
+# 빌드 스테이지에서 생성된 JAR 파일만 복사
 COPY --from=build /app/build/libs/*.jar app.jar
-RUN addgroup --system spring && adduser --system spring --ingroup spring
-RUN chown -R spring:spring /app
-USER spring
 
 EXPOSE 8080
 
-HEALTHCHECK --interval=30s --timeout=10s --start-period=30s --retries=3 \
+# 컨테이너 상태 모니터링
+HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
   CMD curl -f http://localhost:8080/actuator/health || exit 1
 
-ENTRYPOINT ["java", "-Dspring.config.location=file:/app/config/application.properties", "-jar", "/app/app.jar"]
+# 컨테이너 실행 시, 외부(/app/config/application.properties)에 있는 설정 파일을 사용하도록 지정
+# 이 경로는 docker-compose.yml에 설정한 volumes 경로와 반드시 일치해야 합니다.
+ENTRYPOINT ["java", "-Dspring.config.location=file:/app/config/application.properties", "-jar", "app.jar"]

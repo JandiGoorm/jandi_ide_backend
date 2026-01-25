@@ -52,3 +52,4 @@ logs/
 *.log
 jenkins_logs.txt
 *.log
+src/main/resources/application.properties
