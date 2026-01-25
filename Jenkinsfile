@@ -14,7 +14,13 @@ pipeline {
     stages {
         stage('Checkout') {
             steps {
-                checkout scm
+                checkout([$class: 'GitSCM',
+                    branches: [[name: '*/main'], [name: '*/master']],
+                    userRemoteConfigs: [[
+                        url: 'https://github.com/kyj0503/jandi_ide_backend.git',
+                        credentialsId: 'github-token'
+                    ]]
+                ])
             }
         }
 
@@ -35,69 +41,62 @@ pipeline {
             }
         }
 
-        stage('Setup Buildx') {
-            when {
-                anyOf {
-                    branch 'main'
-                    branch 'master'
-                }
-            }
+        stage('Login GHCR') {
             steps {
                 script {
-                    // Docker Buildx 설정 (멀티 아키텍처 빌드용)
-                    sh '''
-                        docker buildx create --name multiarch-builder --use --bootstrap || docker buildx use multiarch-builder
-                        docker buildx inspect --bootstrap
-                    '''
+                    withCredentials([usernamePassword(credentialsId: 'github-token', usernameVariable: 'GITHUB_USER', passwordVariable: 'GITHUB_TOKEN')]) {
+                        sh 'echo $GITHUB_TOKEN | docker login ghcr.io -u $GITHUB_USER --password-stdin'
+                    }
                 }
             }
         }
 
-        stage('Build and Push Multi-Arch Image') {
-            when {
-                anyOf {
-                    branch 'main'
-                    branch 'master'
-                }
-            }
+        stage('Build and Push Image') {
             steps {
                 script {
                     def fullImageName = "ghcr.io/${env.GHCR_OWNER}/${env.IMAGE_NAME}"
                     
-                    echo "Building multi-arch Docker image: ${fullImageName}"
+                    echo "Building Docker image: ${fullImageName}"
                     
                     // Jenkins 빌드: application.properties.example 복사
                     sh 'cp src/main/resources/application.properties.example src/main/resources/application.properties'
                     
-                    // GHCR 로그인
-                    withCredentials([usernamePassword(credentialsId: 'github-token', usernameVariable: 'GITHUB_USER', passwordVariable: 'GITHUB_TOKEN')]) {
-                        sh 'echo $GITHUB_TOKEN | docker login ghcr.io -u $GITHUB_USER --password-stdin'
-                    }
-                    
-                    // 멀티 아키텍처 빌드 및 푸시 (AMD64 + ARM64)
+                    // 빌드 및 푸시
                     sh """
-                        docker buildx build \
-                            --platform linux/amd64,linux/arm64 \
-                            --build-arg BUILDKIT_INLINE_CACHE=1 \
+                        docker build \
                             --tag ${fullImageName}:${env.BUILD_NUMBER} \
                             --tag ${fullImageName}:latest \
-                            --push \
                             .
+                        docker push ${fullImageName}:${env.BUILD_NUMBER}
+                        docker push ${fullImageName}:latest
                     """
                 }
             }
         }
 
-        // 배포는 home-server에서 담당
-        stage('Trigger Deploy') {
-            when {
-                anyOf {
-                    branch 'main'
-                    branch 'master'
+        stage('Deploy') {
+            steps {
+                script {
+                    sh '''
+                        cd /home/ubuntu/source/home-server/docker
+                        docker compose -f docker-compose.apps.yml pull jandi-ide
+                        docker compose -f docker-compose.apps.yml up -d jandi-ide
+                        sleep 10
+                        docker ps | grep jandi-ide
+                        echo "✅ jandi-ide deployment completed!"
+                    '''
                 }
             }
+        }
+
+        stage('Health Check') {
             steps {
-                build job: 'home-server-deploy', wait: false, propagate: false
+                script {
+                    sh '''
+                        sleep 20
+                        curl -f https://ide-be.yeonjae.kr/actuator/health || echo "Health check pending..."
+                    '''
+                }
             }
         }
     }
@@ -107,14 +106,10 @@ pipeline {
             cleanWs()
         }
         success {
-            echo '✅ Build and Push completed successfully!'
+            echo '✅ jandi-ide Build, Push, and Deploy completed successfully!'
         }
         failure {
-            echo '❌ Build failed!'
-        }
-    }
-}
-            echo '❌ Build failed!'
+            echo '❌ Pipeline failed!'
         }
     }
 }
