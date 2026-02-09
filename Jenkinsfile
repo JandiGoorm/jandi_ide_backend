@@ -60,7 +60,7 @@ pipeline {
             steps {
                 script {
                     sh '''
-                        cd /home/ubuntu/source/home-server/docker
+                        cd /opt/home-server/docker
                         docker compose -f docker-compose.apps.yml pull jandi-ide
                         docker compose -f docker-compose.apps.yml up -d jandi-ide
                         sleep 10
