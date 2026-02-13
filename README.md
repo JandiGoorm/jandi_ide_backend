@@ -4,7 +4,7 @@
 
 ## 주요 기능
 
-- **코드 컴파일/실행**: 다양한 언어 지원 (Java, Python, JavaScript 등)
+- **코드 컴파일/실행**: 다양한 언어 지원 (Java, Python, C++ 등)
 - **알고리즘 문제**: 알고리즘 문제 출제 및 채점
 - **채용 공고**: 기업 채용 공고 관리
 - **프로젝트 관리**: 코딩 테스트 프로젝트 생성/관리
@@ -136,7 +136,7 @@ docker stop jandi-ide && docker rm jandi-ide
 
 ```bash
 # 1. 테스트용 이미지 빌드
-docker build --target test -t jandi-ide:test .
+docker build -t jandi-ide:test .
 
 # 2. 테스트 실행
 docker run --rm jandi-ide:test ./gradlew test
@@ -159,7 +159,7 @@ echo $GITHUB_TOKEN | docker login ghcr.io -u kyj0503 --password-stdin
 cp src/main/resources/application.properties.example src/main/resources/application.properties
 
 # 3. 이미지 빌드
-docker build --platform linux/amd64 -t ghcr.io/kyj0503/jandi-plan:latest .
+docker build --platform linux/amd64 -t ghcr.io/kyj0503/jandi-ide:latest .
 
 # 4. Push
 docker push ghcr.io/kyj0503/jandi-ide:latest

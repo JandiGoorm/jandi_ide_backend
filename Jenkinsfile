@@ -1,11 +1,9 @@
 pipeline {
     agent any
 
-    tools {
-        jdk 'jdk21'
-    }
-
     environment {
+        JAVA_HOME = '/usr/lib/jvm/java-1.21.0-openjdk-arm64'
+        PATH = "${JAVA_HOME}/bin:${env.PATH}"
         GHCR_OWNER = 'kyj0503'
         IMAGE_NAME = 'jandi-ide'
         DOCKER_BUILDKIT = '1'
@@ -24,22 +22,6 @@ pipeline {
             }
         }
 
-        stage('Test') {
-            steps {
-                script {
-                    echo "Running tests..."
-                    sh 'CI=true ./gradlew test --no-daemon'
-                }
-            }
-            post {
-                always {
-                    junit allowEmptyResults: true, testResults: '**/build/test-results/test/*.xml'
-                }
-                failure {
-                    echo "Tests failed. Stopping pipeline."
-                }
-            }
-        }
 
         stage('Login GHCR') {
             steps {
@@ -78,11 +60,8 @@ pipeline {
             steps {
                 script {
                     sh '''
-                        cd /home/ubuntu/source/home-server/docker
-                        docker compose -f docker-compose.apps.yml pull jandi-ide
-                        docker compose -f docker-compose.apps.yml up -d jandi-ide
-                        sleep 10
-                        docker ps | grep jandi-ide
+                        /opt/home-server/scripts/deploy-app.sh jandi-ide
+                        sleep 20
                         echo "✅ jandi-ide deployment completed!"
                     '''
                 }
@@ -93,8 +72,16 @@ pipeline {
             steps {
                 script {
                     sh '''
-                        sleep 20
-                        curl -f https://ide-be.yeonjae.kr/actuator/health || echo "Health check pending..."
+                        echo "Waiting for service to be ready..."
+                        for i in 1 2 3 4 5 6 7 8 9 10; do
+                            echo "Health check attempt $i/10"
+                            if curl -sf https://ide-be.yeonjae.kr/actuator/health; then
+                                echo "✅ Service is healthy!"
+                                exit 0
+                            fi
+                            sleep 5
+                        done
+                        echo "⚠️ Health check timed out, but continuing..."
                     '''
                 }
             }

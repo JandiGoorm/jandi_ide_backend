@@ -1,3 +1,4 @@
+# syntax=docker/dockerfile:1
 # 1. 빌드 스테이지: 표준 JDK 환경에서 프로젝트의 Gradle Wrapper를 사용해 빌드
 FROM eclipse-temurin:21-jdk-jammy AS build
 
@@ -18,8 +19,9 @@ RUN chmod +x ./gradlew
 # 소스 코드 복사
 COPY src src
 
-# 최종 JAR 파일 빌드
-RUN ./gradlew build -x test --no-daemon
+# 최종 JAR 파일 빌드 (Gradle 캐시 마운트로 재다운로드 방지)
+RUN --mount=type=cache,target=/root/.gradle \
+    ./gradlew build -x test --no-daemon
 
 # -----------------------------------------------------
 
